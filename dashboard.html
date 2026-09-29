@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FootAll Foot Therapy - Operational Dashboard</title>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --accent-color: #27ae60;
+      --warning-color: #e67e22;
+      --danger-color: #e74c3c;
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    header h1 {
+      font-size: 24px;
+      color: var(--primary-color);
+    }
+
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      border-left: 5px solid var(--accent-color);
+    }
+
+    .kpi-card.warning { border-left-color: var(--warning-color); }
+    .kpi-card.danger { border-left-color: var(--danger-color); }
+
+    .kpi-title {
+      font-size: 14px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: var(--primary-color);
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      margin-bottom: 25px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .badge-active { background: #e8f8f5; color: #27ae60; }
+    .badge-over { background: #fadbd8; color: #e74c3c; }
+    .badge-pending { background: #fef9e7; color: #f39c12; }
+
+    .btn-call {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn-call:hover { background-color: #219150; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🦶 FootAll Foot Therapy Operations Dashboard</h1>
+    <span id="current-date"></span>
+  </header>
+
+  <!-- Top Metric Cards -->
+  <div class="kpi-container">
+    <div class="kpi-card">
+      <div class="kpi-title">Active Packages</div>
+      <div class="kpi-value" id="kpi-active">22</div>
+    </div>
+    <div class="kpi-card warning">
+      <div class="kpi-title">Packages Near Expiry (>85%)</div>
+      <div class="kpi-value" id="kpi-expiry">5</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-title">Exhausted Packages (Over)</div>
+      <div class="kpi-value" id="kpi-over">12</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Clients to Call Today</div>
+      <div class="kpi-value" id="kpi-calls">17</div>
+    </div>
+  </div>
+
+  <div class="grid-layout">
+    <!-- Main Content Area -->
+    <div>
+      <!-- Table: Clients to Call Today -->
+      <div class="card">
+        <h2>📞 Retention & Renewal Queue (Clients to Call)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Status</th>
+              <th>Consumed</th>
+              <th>Usage %</th>
+              <th>Action / Pitch</th>
+            </tr>
+          </thead>
+          <tbody id="call-list-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table: Packages Near Expiry -->
+      <div class="card">
+        <h2>⚠️ High Usage / Expiring Packages</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Total Capacity</th>
+              <th>Consumed</th>
+              <th>Completion %</th>
+            </tr>
+          </thead>
+          <tbody id="expiry-list-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Side Panel: Promotional Offers -->
+    <div>
+      <div class="card">
+        <h2>🏷️ Active Offers & Promotions</h2>
+        <ul style="list-style-type: none; line-height: 2;">
+          <li>🎉 <strong>Anniversary Offer:</strong> 5k for 10 Hours</li>
+          <li>🪔 <strong>Pooja Special:</strong> 5k for 6 Sessions</li>
+          <li>⏰ <strong>Weekday Happy Hour:</strong> 20% off (12 PM–4 PM)</li>
+          <li>🎁 <strong>Value Boost:</strong> Paid 5k for 7k Value</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>📅 Today's Walk-in & Footfall Log</h2>
+        <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Quick record for daily visits.</p>
+        <button class="btn-call" style="width: 100%; padding: 10px; font-size: 14px;" onclick="alert('Log Visit feature active')">+ Record Today's Footfall</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample Data extracted from Excel sheet DOC-20260825-WA0001.xlsx
+    const clientData = [
+      { name: "Mr. Kishor Kumar Chatterjee", status: "ACTIVE", consumed: "930", total: "960", usage: 96.9 },
+      { name: "Mr. Sanjit Biswas", status: "ACTIVE", consumed: "14,320", total: "14,710", usage: 97.3 },
+      { name: "J. Mehta", status: "ACTIVE", consumed: "810", total: "840", usage: 96.4 },
+      { name: "Mr. Utpal Chowdhury", status: "ACTIVE", consumed: "24,900", total: "26,900", usage: 92.6 },
+      { name: "Mrs. Manish Jaiswal", status: "ACTIVE", consumed: "9,170", total: "9,200", usage: 99.7 },
+      { name: "Mr. Subhajit Guha", status: "ACTIVE", consumed: "510", total: "900", usage: 56.7 },
+      { name: "Mr. Subrata Mandal", status: "ACTIVE", consumed: "1,710", total: "2,580", usage: 66.3 },
+      { name: "Mr. Murali Panikar", status: "OVER", consumed: "410", total: "360", usage: 100.0 },
+      { name: "Mr. Supratim Roy", status: "OVER", consumed: "720", total: "480", usage: 100.0 },
+      { name: "Mr. Anand Mehta", status: "OVER", consumed: "1,200", total: "1,200", usage: 100.0 }
+    ];
+
+    document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+    function loadDashboard() {
+      const callTable = document.getElementById('call-list-body');
+      const expiryTable = document.getElementById('expiry-list-body');
+
+      clientData.forEach(client => {
+        // Render Call Queue (Usage >= 85% or Over)
+        if (client.usage >= 85 || client.status === "OVER") {
+          const row = `<tr>
+            <td><strong>${client.name}</strong></td>
+            <td><span class="badge ${client.status === 'ACTIVE' ? 'badge-pending' : 'badge-over'}">${client.status}</span></td>
+            <td>${client.consumed}</td>
+            <td><strong>${client.usage}%</strong></td>
+            <td><button class="btn-call" onclick="alert('Calling ${client.name}')">Pitch Renewal</button></td>
+          </tr>`;
+          callTable.innerHTML += row;
+        }
+
+        // Render Near Expiry Table
+        if (client.status === "ACTIVE" && client.usage >= 75) {
+          const row = `<tr>
+            <td>${client.name}</td>
+            <td>${client.total}</td>
+            <td>${client.consumed}</td>
+            <td style="color: #e74c3c; font-weight: bold;">${client.usage}%</td>
+          </tr>`;
+          expiryTable.innerHTML += row;
+        }
+      });
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>
