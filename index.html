@@ -183,7 +183,6 @@
     </div>
 
     <script>
-        // Sample Data extended with phone numbers, therapy specifics, and usage
         const clientData = [
             { name: "Mr. Kishor Kumar Chatterjee", phone: "919836948421", status: "ACTIVE", consumed: "930 mins", total: "960 mins", usage: 96.9, therapy: "Deep Tissue Foot Reflexology", lastVisit: "Yesterday" },
             { name: "Mr. Sanjit Biswas", phone: "919836948422", status: "ACTIVE", consumed: "14,320 pts", total: "14,710 pts", usage: 97.3, therapy: "Aromatherapy Foot Spa", lastVisit: "Today (02:15 PM)" },
@@ -194,7 +193,6 @@
             { name: "Mr. Supratim Roy", phone: "919836948427", status: "OVER", consumed: "720 mins", total: "480 mins", usage: 100.0, therapy: "Classic Herbal Soak", lastVisit: "2 days ago" }
         ];
 
-        // Today's Attendance simulated from WhatsApp inbound logs
         const attendanceLog = [
             { time: "02:15 PM", name: "Mr. Sanjit Biswas", therapy: "Aromatherapy Foot Spa", source: "FootAll Attendance WA" },
             { time: "01:00 PM", name: "Mrs. Manish Jaiswal", therapy: "Relaxation Reflexology", source: "FootAll Appointment WA" },
@@ -211,7 +209,6 @@
             attendanceTable.innerHTML = '';
 
             clientData.forEach((client, index) => {
-                // Retention & Renewal Queue (Usage >= 85% or Over)
                 if (client.usage >= 85 || client.status === "OVER") {
                     const row = document.createElement('tr');
                     row.className = 'clickable-row';
@@ -221,14 +218,13 @@
                         <td><span class="badge ${client.status === 'ACTIVE' ? 'badge-pending' : 'badge-over'}">${client.status}</span></td>
                         <td><strong>${client.usage}%</strong> (${client.consumed})</td>
                         <td onclick="event.stopPropagation()">
-                            <button class="btn btn-whatsapp" onclick="sendWhatsAppExpiry('${client.phone}', '${client.name}', '${client.usage}')">💬 WhatsApp</button>
+                            <button class="btn btn-whatsapp" onclick="sendWhatsAppExpiry('${client.phone}', '${client.name}')">💬 WhatsApp</button>
                         </td>
                     `;
                     callTable.appendChild(row);
                 }
             });
 
-            // Populate Attendance Feed
             attendanceLog.forEach(log => {
                 const row = `<tr>
                     <td>${log.time}</td>
@@ -251,7 +247,7 @@
                 <p><strong>Utilization Rate:</strong> ${client.usage}%</p>
                 <p><strong>Last Visit:</strong> ${client.lastVisit}</p>
                 <div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button class="btn btn-whatsapp" onclick="sendWhatsAppExpiry('${client.phone}', '${client.name}', '${client.usage}')">Send Renewal Offer via WhatsApp</button>
+                    <button class="btn btn-whatsapp" onclick="sendWhatsAppExpiry('${client.phone}', '${client.name}')">Send Renewal Offer via WhatsApp</button>
                 </div>
             `;
             document.getElementById('clientModal').style.display = 'flex';
@@ -261,8 +257,8 @@
             document.getElementById('clientModal').style.display = 'none';
         }
 
-        function sendWhatsAppExpiry(phone, name, usage) {
-            const message = encodeURIComponent(`Hi ${name}, your FootAll Foot Therapy package usage is currently at ${usage}%. We miss you! Check out our special weekday happy hours or renewal packages to keep your feet relaxed. Reply here to book your slot!`);
+        function sendWhatsAppExpiry(phone, name) {
+            const message = encodeURIComponent(`Hi ${name}, your FootAll Foot Therapy package is approaching completion. We miss you! Check out our special weekday happy hours or renewal packages to keep your feet relaxed. Reply here to book your slot!`);
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
         }
 
