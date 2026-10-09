@@ -214,4 +214,56 @@
     </div>
 
     <div class="table-card">
+
+      function updateClientData(data) {
+  console.log("Parsed Client Raw Data:", data);
+
+  if (!data || data.length === 0) {
+    alert("The uploaded Excel file appears to be empty or missing data on Sheet 1.");
+    return;
+  }
+
+  // 1. Update Total Clients Metric
+  const totalClients = data.length;
+  const totalMetricEl = document.querySelector('.metric-total-clients') || document.querySelector('#total-clients');
+  if (totalMetricEl) {
+    totalMetricEl.textContent = totalClients;
+  }
+
+  // 2. Render Client Table / Container
+  const clientContainer = document.querySelector('#client-details-container') || document.querySelector('.client-details-section');
+  
+  if (clientContainer) {
+    // Generate Table HTML from uploaded rows
+    let tableHtml = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Client Name</th>
+            <th>Status</th>
+            <th>Package / Details</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.forEach(row => {
+      // Flexibly grab values regardless of exact column case/naming
+      const clientName = row['Client Name'] || row['Client'] || row['Name'] || row['Customer'] || 'N/A';
+      const status = row['Status'] || row['Package Status'] || row['Active'] || 'N/A';
+      const details = row['Package'] || row['Details'] || row['Probability'] || 'N/A';
+
+      tableHtml += `
+        <tr>
+          <td><b>${clientName}</b></td>
+          <td>${status}</td>
+          <td>${details}</td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `</tbody></table>`;
+    clientContainer.innerHTML = tableHtml;
+  }
+}
       <h3>Expense
