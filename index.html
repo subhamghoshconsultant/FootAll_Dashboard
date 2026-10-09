@@ -1,304 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard with Dynamic Excel Data Upload</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard with Dynamic Excel Data Upload</title>
+    <!-- SheetJS Library to parse Excel (.xlsx / .xls) files directly in browser -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        h1, h2, h3 { margin-top: 0; }
+        
+        /* Upload Panel Styles */
+        .upload-section { background-color: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 24px; }
+        .upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
+        .upload-card { background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; transition: border-color 0.2s ease; }
+        .upload-card:hover { border-color: #2563eb; }
+        .upload-card label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
+        .upload-card input[type="file"] { width: 100%; font-size: 0.85rem; }
+        
+        .status-badge { display: inline-block; margin-top: 8px; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #e2e8f0; color: #64748b; }
+        .status-badge.active { background-color: #dcfce7; color: #15803d; }
+        
+        /* Mock Data Button */
+        .mock-section { text-align: center; margin-bottom: 24px; }
+        .btn-mock { background-color: #1e293b; color: #fff; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+        .btn-mock:hover { background-color: #334155; }
+        
+        /* Metric Cards */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .metric-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-left: 4px solid #2563eb; }
+        .metric-card h3 { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; }
+        .metric-card .value { font-size: 1.5rem; font-weight: bold; color: #0f172a; }
+        .metric-card .sub-value { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
 
-  <!-- SheetJS Library to parse Excel (.xlsx / .xls) files directly in browser -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+        /* Dashboard Data Tables */
+        .dashboard-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .table-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+        .table-container { overflow-x: auto; max-height: 300px; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+        th { background-color: #f1f5f9; position: sticky; top: 0; }
 
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    body {
-      background-color: #f4f6f9;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    h1, h2, h3 {
-      margin-top: 0;
-    }
-
-    /* Upload Panel Styles */
-    .upload-section {
-      background-color: #ffffff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      margin-bottom: 24px;
-    }
-    .upload-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-    .upload-card {
-      background-color: #f8fafc;
-      border: 2px dashed #cbd5e1;
-      border-radius: 8px;
-      padding: 16px;
-      transition: border-color 0.2s ease;
-    }
-    .upload-card:hover {
-      border-color: #2563eb;
-    }
-    .upload-card label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #1e293b;
-    }
-    .upload-card input[type="file"] {
-      width: 100%;
-      font-size: 0.85rem;
-    }
-    .status-badge {
-      display: inline-block;
-      margin-top: 8px;
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background-color: #e2e8f0;
-      color: #64748b;
-    }
-    .status-badge.active {
-      background-color: #dcfce7;
-      color: #15803d;
-    }
-
-    /* Metric Cards */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .metric-card {
-      background-color: #ffffff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-      border-left: 4px solid #2563eb;
-    }
-    .metric-card h3 {
-      font-size: 0.85rem;
-      color: #64748b;
-      margin-bottom: 8px;
-    }
-    .metric-card .value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #0f172a;
-    }
-
-    /* Dashboard Data Tables */
-    .dashboard-tables {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
-    }
-    .table-card {
-      background-color: #ffffff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }
-    .table-container {
-      overflow-x: auto;
-      max-height: 250px;
-      margin-top: 10px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    th, td {
-      border: 1px solid #e2e8f0;
-      padding: 8px 12px;
-      text-align: left;
-    }
-    th {
-      background-color: #f1f5f9;
-      position: sticky;
-      top: 0;
-    }
-  </style>
+        /* WhatsApp Button */
+        .btn-wa { background-color: #25D366; color: white; padding: 4px 10px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; }
+        .btn-wa:hover { background-color: #128C7E; }
+    </style>
 </head>
 <body>
 
-  <h1>Business Dashboard</h1>
+    <h1>Business Dashboard</h1>
 
-  <!-- 1. EXCEL UPLOAD SECTION -->
-  <div class="upload-section">
-    <h2>Upload Latest Excel Documents</h2>
-    <p style="color: #64748b; font-size: 0.9rem;">Upload files for specific categories. Unuploaded data will remain intact.</p>
-
-    <div class="upload-grid">
-      <!-- Section 1: Client Details -->
-      <div class="upload-card">
-        <label for="uploadClient">1. Client Details</label>
-        <input type="file" id="uploadClient" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'client')">
-        <span id="status-client" class="status-badge">Default Data</span>
-      </div>
-
-      <!-- Section 2: Attendance Details -->
-      <div class="upload-card">
-        <label for="uploadAttendance">2. Attendance Details</label>
-        <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
-        <span id="status-attendance" class="status-badge">Default Data</span>
-      </div>
-
-      <!-- Section 3: Income Details -->
-      <div class="upload-card">
-        <label for="uploadIncome">3. Income Details</label>
-        <input type="file" id="uploadIncome" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'income')">
-        <span id="status-income" class="status-badge">Default Data</span>
-      </div>
-
-      <!-- Section 4: Expense Details -->
-      <div class="upload-card">
-        <label for="uploadExpense">4. Expense Details</label>
-        <input type="file" id="uploadExpense" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'expense')">
-        <span id="status-expense" class="status-badge">Default Data</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. SUMMARY METRICS PANEL -->
-  <div class="metrics-grid">
-    <div class="metric-card" style="border-left-color: #3b82f6;">
-      <h3>Total Clients</h3>
-      <div class="value" id="metric-clients">0</div>
-    </div>
-    <div class="metric-card" style="border-left-color: #10b981;">
-      <h3>Attendance Rate</h3>
-      <div class="value" id="metric-attendance">0%</div>
-    </div>
-    <div class="metric-card" style="border-left-color: #8b5cf6;">
-      <h3>Total Income</h3>
-      <div class="value" id="metric-income">$0.00</div>
-    </div>
-    <div class="metric-card" style="border-left-color: #ef4444;">
-      <h3>Total Expense</h3>
-      <div class="value" id="metric-expense">$0.00</div>
-    </div>
-  </div>
-
-  <!-- 3. DASHBOARD DATA DISPLAY -->
-  <div class="dashboard-tables">
-    <div class="table-card">
-      <h3>Client Details</h3>
-      <div class="table-container" id="container-client">
-        <em>No client data loaded.</em>
-      </div>
+    <!-- 1. EXCEL UPLOAD SECTION -->
+    <div class="upload-section">
+        <h2>Upload Latest Excel Documents</h2>
+        <p style="color: #64748b; font-size: 0.9rem;">Upload files for specific categories. Unuploaded data will remain intact. Any file name is accepted.</p>
+        
+        <div class="upload-grid">
+            <div class="upload-card">
+                <label for="uploadClient">1. Client Details</label>
+                <input type="file" id="uploadClient" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'client')">
+                <span id="status-client" class="status-badge">Default Data</span>
+            </div>
+            <div class="upload-card">
+                <label for="uploadAttendance">2. Attendance Details</label>
+                <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
+                <span id="status-attendance" class="status-badge">Default Data</span>
+            </div>
+            <div class="upload-card">
+                <label for="uploadIncome">3. Income Details</label>
+                <input type="file" id="uploadIncome" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'income')">
+                <span id="status-income" class="status-badge">Default Data</span>
+            </div>
+            <div class="upload-card">
+                <label for="uploadExpense">4. Expense Details</label>
+                <input type="file" id="uploadExpense" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'expense')">
+                <span id="status-expense" class="status-badge">Default Data</span>
+            </div>
+        </div>
     </div>
 
-    <div class="table-card">
-      <h3>Attendance Details</h3>
-      <div class="table-container" id="container-attendance">
-        <em>No attendance data loaded.</em>
-      </div>
+    <!-- MOCK DATA GENERATOR -->
+    <div class="mock-section">
+        <button class="btn-mock" onclick="generateMockData()">⚙️ Generate Mock Data for Testing</button>
     </div>
 
-    <div class="table-card">
-      <h3>Income Details</h3>
-      <div class="table-container" id="container-income">
-        <em>No income data loaded.</em>
-      </div>
+    <!-- 2. SUMMARY METRICS PANEL -->
+    <div class="metrics-grid">
+        <div class="metric-card" style="border-left-color: #3b82f6;">
+            <h3>High Usage Clients (>90%)</h3>
+            <div class="value" id="metric-clients">0</div>
+            <div class="sub-value" id="metric-clients-sub">Out of 0 total clients</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #10b981;">
+            <h3>Total Days Present</h3>
+            <div class="value" id="metric-attendance">0</div>
+            <div class="sub-value" id="metric-attendance-sub">0% of total working days</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #8b5cf6;">
+            <h3>Total Income (Current)</h3>
+            <div class="value" id="metric-income">$0.00</div>
+            <div class="sub-value" id="metric-income-sub">Predicted Monthly: $0.00</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #ef4444;">
+            <h3>Total Expense</h3>
+            <div class="value" id="metric-expense">$0.00</div>
+            <div class="sub-value" id="metric-expense-sub">0% of Total Income</div>
+        </div>
     </div>
 
-    <div class="table-card">
-<script>
-  // Central State Store
-  let dashboardData = {
-    client: [],
-    attendance: [],
-    income: [],
-    expense: []
-  };
+    <!-- 3. DASHBOARD DATA DISPLAY -->
+    <div class="dashboard-tables">
+        <div class="table-card">
+            <h3>Client Details (Usage & Comms)</h3>
+            <div class="table-container" id="container-client"><em>No client data loaded.</em></div>
+        </div>
+        <div class="table-card">
+            <h3>Attendance Details</h3>
+            <div class="table-container" id="container-attendance"><em>No attendance data loaded.</em></div>
+        </div>
+        <div class="table-card">
+            <h3>Income Details</h3>
+            <div class="table-container" id="container-income"><em>No income data loaded.</em></div>
+        </div>
+        <div class="table-card">
+            <h3>Expense Details</h3>
+            <div class="table-container" id="container-expense"><em>No expense data loaded.</em></div>
+        </div>
+    </div>
 
-  // 1. File Upload Handler
-  function handleFileUpload(event, category) {
-    const file = event.target.files[0];
-    if (!file) return;
+    <script>
+        // Central State Store
+        let dashboardData = { client: [], attendance: [], income: [], expense: [] };
 
-    const reader = new FileReader();
+        // 1. File Upload Handler
+        function handleFileUpload(event, category) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-    reader.onload = function (e) {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-      if (!rawRows || rawRows.length === 0) {
-        alert("The uploaded Excel file appears to be empty.");
-        return;
-      }
+                if (!rawRows || rawRows.length === 0) {
+                    alert("The uploaded Excel file appears to be empty.");
+                    return;
+                }
 
-      // Loose column matching & normalization
-      const normalizedData = normalizeRows(rawRows, category);
-      dashboardData[category] = normalizedData;
+                dashboardData[category] = normalizeRows(rawRows, category);
+                
+                // Update Badge
+                let badge = document.getElementById(`status-${category}`);
+                badge.textContent = "Data Loaded";
+                badge.classList.add("active");
 
-      // Update UI for the specific section
-      updateDashboardUI(category);
-    };
+                updateDashboardUI();
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
-    reader.readAsArrayBuffer(file);
-  }
+        // 2. Loose Field Matcher
+        function getFieldValue(row, possibleAliases) {
+            const keys = Object.keys(row);
+            for (const alias of possibleAliases) {
+                const matchedKey = keys.find((k) => k.trim().toLowerCase() === alias.toLowerCase());
+                if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
+                    return row[matchedKey];
+                }
+            }
+            return "N/A";
+        }
 
-  // 2. Loose Field Matcher
-  function getFieldValue(row, possibleAliases) {
-    const keys = Object.keys(row);
-    for (const alias of possibleAliases) {
-      const matchedKey = keys.find(
-        (k) => k.trim().toLowerCase() === alias.toLowerCase()
-      );
-      if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
-        return row[matchedKey];
-      }
-    }
-    return "N/A";
-  }
+        // 3. Category Row Normalizer
+        function normalizeRows(rows, category) {
+            return rows.map((row) => {
+                switch (category) {
+                    case "client":
+                        return {
+                            name: getFieldValue(row, ["client name", "client", "name", "customer"]),
+                            usage: parseFloat(getFieldValue(row, ["usage", "usage %", "probability", "package usage"])) || 0,
+                            phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
+                        };
+                    case "attendance":
+                        return {
+                            date: getFieldValue(row, ["date", "day", "attendance date"]),
+                            present: parseFloat(getFieldValue(row, ["present", "present count", "attended", "p"])) || 0,
+                            absent: parseFloat(getFieldValue(row, ["absent", "absent count", "a", "leave"])) || 0
+                        };
+                    case "income":
+                        return {
+                            source: getFieldValue(row, ["source", "income source", "category", "description"]),
+                            amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
+                        };
+                    case "expense":
+                        return {
+                            category: getFieldValue(row, ["category", "expense category", "item"]),
+                            amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
+                        };
+                    default:
+                        return row;
+                }
+            });
+        }
 
-  // 3. Category Row Normalizer
-  function normalizeRows(rows, category) {
-    return rows.map((row) => {
-      switch (category) {
-        case "client":
-          return {
-            name: getFieldValue(row, ["client name", "client", "name", "customer", "company"]),
-            status: getFieldValue(row, ["status", "package status", "active", "state"]),
-            details: getFieldValue(row, ["package", "details", "description", "probability", "plan"])
-          };
-        case "attendance":
-          return {
-            date: getFieldValue(row, ["date", "day", "attendance date"]),
-            present: getFieldValue(row, ["present", "present count", "attended", "p"]),
-            absent: getFieldValue(row, ["absent", "absent count", "a", "leave"])
-          };
-        case "income":
-          return {
-            source: getFieldValue(row, ["source", "income source", "category", "description", "revenue"]),
-            amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
-          };
-        case "expense":
-          return {
-            category: getFieldValue(row, ["category", "expense category", "item", "description"]),
-            amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
-          };
-        default:
-          return row;
-      }
-    });
-  }
-</script>
-      
-}
-      <h3>Expense
+        // 4. Mock Data Generator
+        function generateMockData() {
+            dashboardData.client = [
+                { name: "Acme Corp", usage: 95, phone: "1234567890" },
+                { name: "TechFlow Inc", usage: 85, phone: "0987654321" },
+                { name: "Global Med", usage: 92, phone: "1112223333" },
+                { name: "Local Bakery", usage: 40, phone: "4445556666" }
+            ];
+            dashboardData.attendance = [
+                { date: "2026-10-01", present: 45, absent: 5 },
+                { date: "2026-10-02", present: 48, absent: 2 },
+                { date: "2026-10-03", present: 42, absent: 8 }
+            ];
+            dashboardData.income = [
+                { source: "Service Contracts", amount: 12000 },
+                { source: "Software Sales", amount: 8500 },
+                { source: "Consulting", amount: 3000 }
+            ];
+            dashboardData.expense = [
+                { category: "Office Rent", amount: 4000 },
+                { category: "Server Hosting", amount: 1200 },
+                { category: "Marketing", amount: 2500 }
+            ];
+
+            ['client', 'attendance', 'income', 'expense'].forEach(cat => {
+                let badge = document.getElementById(`status-${cat}`);
+                badge.textContent = "Mock Data Active";
+                badge.classList.add("active");
+            });
+
+            updateDashboardUI();
+        }
+
+        // 5. Update UI (Metrics & Tables)
+        function updateDashboardUI() {
+            updateMetrics();
+            renderTables();
+        }
+
+        function updateMetrics() {
+            // -- Client Metrics (Usage > 90%)
+            const totalClients = dashboardData.client.length;
+            const highUsageClients = dashboardData.client.filter(c => c.usage > 90).length;
+            document.getElementById('metric-clients').innerText = highUsageClients;
+            document.getElementById('metric-clients-sub').innerText = `Out of ${totalClients} total clients`;
+
+            // -- Attendance Metrics
+            let totalPresent = 0;
+            let totalAbsent = 0;
+            dashboardData.attendance.forEach(a => {
+                totalPresent += a.present;
+                totalAbsent += a.absent;
+            });
+            const totalDays = totalPresent + totalAbsent;
+            const attendancePercent = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(1) : 0;
+            document.getElementById('metric-attendance').innerText = totalPresent;
+            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% of total working days`;
+
+            // -- Income Metrics (Current & Monthly Prediction)
+            let totalIncome = dashboardData.income.reduce((sum, item) => sum + item.amount, 0);
+            
+            // Prediction Logic: (Total Income / days passed in month) * total days in month
+            const today = new Date();
+            const currentDay = today.getDate();
+            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const predictedIncome = totalIncome > 0 ? (totalIncome / currentDay) * daysInMonth : 0;
+
+            document.getElementById('metric-income').innerText = `$${totalIncome.toLocaleString()}`;
+            document.getElementById('metric-income-sub').innerText = `Predicted Monthly: $${predictedIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            // -- Expense Metrics (% based on income)
+            let totalExpense = dashboardData.expense.reduce((sum, item) => sum + item.amount, 0);
+            const expensePercent = totalIncome > 0 ?
