@@ -214,56 +214,91 @@
     </div>
 
     <div class="table-card">
+<script>
+  // Central State Store
+  let dashboardData = {
+    client: [],
+    attendance: [],
+    income: [],
+    expense: []
+  };
 
-      function updateClientData(data) {
-  console.log("Parsed Client Raw Data:", data);
+  // 1. File Upload Handler
+  function handleFileUpload(event, category) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  if (!data || data.length === 0) {
-    alert("The uploaded Excel file appears to be empty or missing data on Sheet 1.");
-    return;
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      if (!rawRows || rawRows.length === 0) {
+        alert("The uploaded Excel file appears to be empty.");
+        return;
+      }
+
+      // Loose column matching & normalization
+      const normalizedData = normalizeRows(rawRows, category);
+      dashboardData[category] = normalizedData;
+
+      // Update UI for the specific section
+      updateDashboardUI(category);
+    };
+
+    reader.readAsArrayBuffer(file);
   }
 
-  // 1. Update Total Clients Metric
-  const totalClients = data.length;
-  const totalMetricEl = document.querySelector('.metric-total-clients') || document.querySelector('#total-clients');
-  if (totalMetricEl) {
-    totalMetricEl.textContent = totalClients;
+  // 2. Loose Field Matcher
+  function getFieldValue(row, possibleAliases) {
+    const keys = Object.keys(row);
+    for (const alias of possibleAliases) {
+      const matchedKey = keys.find(
+        (k) => k.trim().toLowerCase() === alias.toLowerCase()
+      );
+      if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
+        return row[matchedKey];
+      }
+    }
+    return "N/A";
   }
 
-  // 2. Render Client Table / Container
-  const clientContainer = document.querySelector('#client-details-container') || document.querySelector('.client-details-section');
-  
-  if (clientContainer) {
-    // Generate Table HTML from uploaded rows
-    let tableHtml = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Client Name</th>
-            <th>Status</th>
-            <th>Package / Details</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    data.forEach(row => {
-      // Flexibly grab values regardless of exact column case/naming
-      const clientName = row['Client Name'] || row['Client'] || row['Name'] || row['Customer'] || 'N/A';
-      const status = row['Status'] || row['Package Status'] || row['Active'] || 'N/A';
-      const details = row['Package'] || row['Details'] || row['Probability'] || 'N/A';
-
-      tableHtml += `
-        <tr>
-          <td><b>${clientName}</b></td>
-          <td>${status}</td>
-          <td>${details}</td>
-        </tr>
-      `;
+  // 3. Category Row Normalizer
+  function normalizeRows(rows, category) {
+    return rows.map((row) => {
+      switch (category) {
+        case "client":
+          return {
+            name: getFieldValue(row, ["client name", "client", "name", "customer", "company"]),
+            status: getFieldValue(row, ["status", "package status", "active", "state"]),
+            details: getFieldValue(row, ["package", "details", "description", "probability", "plan"])
+          };
+        case "attendance":
+          return {
+            date: getFieldValue(row, ["date", "day", "attendance date"]),
+            present: getFieldValue(row, ["present", "present count", "attended", "p"]),
+            absent: getFieldValue(row, ["absent", "absent count", "a", "leave"])
+          };
+        case "income":
+          return {
+            source: getFieldValue(row, ["source", "income source", "category", "description", "revenue"]),
+            amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
+          };
+        case "expense":
+          return {
+            category: getFieldValue(row, ["category", "expense category", "item", "description"]),
+            amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
+          };
+        default:
+          return row;
+      }
     });
-
-    tableHtml += `</tbody></table>`;
-    clientContainer.innerHTML = tableHtml;
   }
+</script>
+      
 }
       <h3>Expense
