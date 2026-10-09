@@ -279,4 +279,58 @@
 
             // -- Expense Metrics (% based on income)
             let totalExpense = dashboardData.expense.reduce((sum, item) => sum + item.amount, 0);
-            const expensePercent = totalIncome > 0 ?
+            const expensePercent = totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(1) : 0;
+
+            document.getElementById('metric-expense').innerText = `$${totalExpense.toLocaleString()}`;
+            document.getElementById('metric-expense-sub').innerText = `${expensePercent}% of Total Income`;
+        }
+
+        function renderTables() {
+            // Client Table
+            if (dashboardData.client.length > 0) {
+                let html = `<table><tr><th>Client Name</th><th>Usage %</th><th>Action</th></tr>`;
+                dashboardData.client.forEach(c => {
+                    let actionHtml = "N/A";
+                    if (c.usage > 90 && c.phone !== "N/A") {
+                        let msg = encodeURIComponent(`Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`);
+                        actionHtml = `<a href="https://wa.me/${c.phone}?text=${msg}" target="_blank" class="btn-wa">Send WhatsApp</a>`;
+                    }
+                    html += `<tr><td>${c.name}</td><td>${c.usage}%</td><td>${actionHtml}</td></tr>`;
+                });
+                html += `</table>`;
+                document.getElementById('container-client').innerHTML = html;
+            }
+
+            // Attendance Table
+            if (dashboardData.attendance.length > 0) {
+                let html = `<table><tr><th>Date</th><th>Present</th><th>Absent</th></tr>`;
+                dashboardData.attendance.forEach(a => {
+                    html += `<tr><td>${a.date}</td><td>${a.present}</td><td>${a.absent}</td></tr>`;
+                });
+                html += `</table>`;
+                document.getElementById('container-attendance').innerHTML = html;
+            }
+
+            // Income Table
+            if (dashboardData.income.length > 0) {
+                let html = `<table><tr><th>Income Source</th><th>Amount</th></tr>`;
+                dashboardData.income.forEach(i => {
+                    html += `<tr><td>${i.source}</td><td>$${i.amount.toLocaleString()}</td></tr>`;
+                });
+                html += `</table>`;
+                document.getElementById('container-income').innerHTML = html;
+            }
+
+            // Expense Table
+            if (dashboardData.expense.length > 0) {
+                let html = `<table><tr><th>Expense Category</th><th>Amount</th></tr>`;
+                dashboardData.expense.forEach(e => {
+                    html += `<tr><td>${e.category}</td><td>$${e.amount.toLocaleString()}</td></tr>`;
+                });
+                html += `</table>`;
+                document.getElementById('container-expense').innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>
