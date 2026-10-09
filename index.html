@@ -176,30 +176,82 @@
         }
 
         // 3. Category Row Normalizer
+        // function normalizeRows(rows, category) {
+        //     return rows.map((row) => {
+        //         switch (category) {
+        //             case "client":
+        //                 return {
+        //                     name: getFieldValue(row, ["client name", "client", "name", "customer"]),
+        //                     usage: parseFloat(getFieldValue(row, ["usage", "usage %", "probability", "package usage"])) || 0,
+        //                     phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
+        //                 };
+        //             case "attendance":
+        //                 return {
+        //                     date: getFieldValue(row, ["date", "day", "attendance date"]),
+        //                     present: parseFloat(getFieldValue(row, ["present", "present count", "attended", "p"])) || 0,
+        //                     absent: parseFloat(getFieldValue(row, ["absent", "absent count", "a", "leave"])) || 0
+        //                 };
+        //             case "income":
+        //                 return {
+        //                     source: getFieldValue(row, ["source", "income source", "category", "description"]),
+        //                     amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
+        //                 };
+        //             case "expense":
+        //                 return {
+        //                     category: getFieldValue(row, ["category", "expense category", "item"]),
+        //                     amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
+        //                 };
+        //             default:
+        //                 return row;
+        //         }
+        //     });
+        // } 
+
+        // 3. Robust Number & Percentage Parser
+        // 3. Robust Number & Percentage Parser
+        function parseNumeric(val, isPercentage = false) {
+            if (val === undefined || val === null || val === "" || val === "N/A") return 0;
+            
+            let num = 0;
+            if (typeof val === 'string') {
+                // Strips out currency symbols, commas, and percentage signs so "56%" or "$5,000" parse correctly
+                num = parseFloat(val.replace(/[^0-9.-]/g, ''));
+            } else if (typeof val === 'number') {
+                num = val;
+                // If Excel parsed a % formatted cell, it gives a decimal (e.g., 95% -> 0.95). Multiply by 100 to fix.
+                if (isPercentage && num > 0 && num <= 1) {
+                    num = num * 100;
+                }
+            }
+            return isNaN(num) ? 0 : num;
+        }
+
+        // 4. Category Row Normalizer (Replaces your existing one)
         function normalizeRows(rows, category) {
             return rows.map((row) => {
                 switch (category) {
                     case "client":
                         return {
                             name: getFieldValue(row, ["client name", "client", "name", "customer"]),
-                            usage: parseFloat(getFieldValue(row, ["usage", "usage %", "probability", "package usage"])) || 0,
+                            // Passes "true" to parseNumeric to handle decimals and % signs securely
+                            usage: parseNumeric(getFieldValue(row, ["usage", "usage %", "probability", "package usage"]), true),
                             phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
                         };
                     case "attendance":
                         return {
                             date: getFieldValue(row, ["date", "day", "attendance date"]),
-                            present: parseFloat(getFieldValue(row, ["present", "present count", "attended", "p"])) || 0,
-                            absent: parseFloat(getFieldValue(row, ["absent", "absent count", "a", "leave"])) || 0
+                            present: parseNumeric(getFieldValue(row, ["present", "present count", "attended", "p"])),
+                            absent: parseNumeric(getFieldValue(row, ["absent", "absent count", "a", "leave"]))
                         };
                     case "income":
                         return {
                             source: getFieldValue(row, ["source", "income source", "category", "description"]),
-                            amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
+                            amount: parseNumeric(getFieldValue(row, ["amount", "income", "total", "value"]))
                         };
                     case "expense":
                         return {
                             category: getFieldValue(row, ["category", "expense category", "item"]),
-                            amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
+                            amount: parseNumeric(getFieldValue(row, ["amount", "expense", "cost", "total"]))
                         };
                     default:
                         return row;
