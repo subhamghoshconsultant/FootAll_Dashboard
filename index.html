@@ -1,201 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Package Probability Dashboard</title>
-    <!-- Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS for parsing Excel (.xlsx) files -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-</head>
-<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
+<script>
+    let clientData = [];
 
-    <div class="max-w-7xl mx-auto space-y-6">
-        
-        <!-- Header & File Input -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-            <div>
-                <h1 class="text-2xl font-bold text-white">Client Package Probability Tracker</h1>
-                <p class="text-sm text-gray-400">Upload your Excel file to generate client probabilities</p>
-            </div>
-            <div class="mt-4 md:mt-0">
-                <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow transition duration-150 inline-block">
-                    <span>Upload Tracker (.xlsx)</span>
-                    <input type="file" id="fileUpload" accept=".xlsx, .xls" class="hidden">
-                </label>
-            </div>
-        </div>
+    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
+    document.getElementById('filterTier').addEventListener('change', renderTable);
 
-        <!-- Summary Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                <p class="text-xs text-gray-400 uppercase font-semibold">Total Clients</p>
-                <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-green-500/30">
-                <p class="text-xs text-green-400 uppercase font-semibold">High Probability (>70%)</p>
-                <p id="statHigh" class="text-2xl font-bold text-green-400 mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/30">
-                <p class="text-xs text-yellow-400 uppercase font-semibold">Medium Probability (40%-70%)</p>
-                <p id="statMed" class="text-2xl font-bold text-yellow-400 mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-red-500/30">
-                <p class="text-xs text-red-400 uppercase font-semibold">Low Probability (<40%)</p>
-                <p id="statLow" class="text-2xl font-bold text-red-400 mt-1">0</p>
-            </div>
-        </div>
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-        <!-- Filters & Dashboard Table -->
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-xl font-bold text-white">Client Probability Overview</h2>
-                
-                <!-- Filter Dropdown -->
-                <div class="flex items-center space-x-2">
-                    <label for="filterTier" class="text-sm text-gray-400">Filter Tier:</label>
-                    <select id="filterTier" class="bg-gray-700 text-white text-sm rounded-lg p-2 border border-gray-600 focus:outline-none">
-                        <option value="ALL">All Tiers</option>
-                        <option value="HIGH">High Probability (>70%)</option>
-                        <option value="MEDIUM">Medium Probability (40-70%)</option>
-                        <option value="LOW">Low Probability (<40%)</option>
-                    </select>
-                </div>
-            </div>
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
 
-            <!-- Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
-                            <th class="py-3 px-4">Client Name</th>
-                            <th class="py-3 px-4">Package Name</th>
-                            <th class="py-3 px-4">Probability Score</th>
-                            <th class="py-3 px-4">Probability Tier</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-gray-700 text-sm">
-                        <tr>
-                            <td colspan="4" class="py-8 text-center text-gray-500">
-                                Please upload <span class="text-blue-400 font-mono">Client_Package_Probability_Tracker_Updated.xlsx</span> to display data.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            // Read the first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
 
-    </div>
+            // Convert sheet to JSON
+            const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            processExcelData(rawJson);
+        };
+        reader.readAsArrayBuffer(file);
+    }
 
-    <!-- Script to Read Excel and Render Dashboard -->
-    <script>
-        let clientData = [];
-
-        document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
-        document.getElementById('filterTier').addEventListener('change', renderTable);
-
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-
-                // Read first sheet
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON
-                const rawJson = XLSX.utils.sheet_to_json(worksheet);
-                processExcelData(rawJson);
-            };
-            reader.readAsArrayBuffer(file);
+    // Helper to search row keys flexibly
+    function getRowValue(row, possibleKeys) {
+        const keys = Object.keys(row);
+        for (let targetKey of possibleKeys) {
+            const matchedKey = keys.find(k => k.trim().toLowerCase().replace(/[\s_]+/g, '') === targetKey.toLowerCase().replace(/[\s_]+/g, ''));
+            if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
+                return row[matchedKey];
+            }
         }
+        return null;
+    }
 
-        function processExcelData(data) {
-            clientData = data.map(row => {
-                // Adjust keys below to match your exact Excel column headers
-                const client = row['Client Name'] || row['Client'] || 'Unknown Client';
-                const pkg = row['Package'] || row['Package Name'] || 'N/A';
-                
-                // Parse probability score (handles values like 0.85, 85, or "85%")
-                let rawProb = row['Probability'] || row['Probability Score'] || row['Score'] || 0;
+    function processExcelData(data) {
+        clientData = data.map(row => {
+            // Flexible matching for Client Name
+            const client = getRowValue(row, ['Client Name', 'Client', 'Client_Name', 'Customer', 'Account']) || 'Unknown Client';
+            
+            // Flexible matching for Package Name
+            const pkg = getRowValue(row, ['Package Name', 'Package', 'Package_Name', 'Service', 'Plan']) || 'N/A';
+            
+            // Flexible matching for Probability Score
+            let rawProb = getRowValue(row, ['Probability Score', 'Probability', 'Probability%', 'Score', 'Chance', 'Likelihood', 'Prob']);
+            
+            let probPercent = 0;
+            if (rawProb !== null && rawProb !== undefined) {
                 if (typeof rawProb === 'string') {
-                    rawProb = parseFloat(rawProb.replace('%', '')) / (rawProb.includes('%') ? 100 : 1);
-                } else if (rawProb > 1) {
-                    rawProb = rawProb / 100;
+                    const cleanStr = rawProb.replace('%', '').trim();
+                    const num = parseFloat(cleanStr);
+                    if (!isNaN(num)) {
+                        probPercent = rawProb.includes('%') || num > 1 ? Math.round(num) : Math.round(num * 100);
+                    }
+                } else if (typeof rawProb === 'number') {
+                    probPercent = rawProb > 1 ? Math.round(rawProb) : Math.round(rawProb * 100);
                 }
-
-                const probPercent = Math.round((rawProb || 0) * 100);
-
-                let tier = 'LOW';
-                if (probPercent >= 70) tier = 'HIGH';
-                else if (probPercent >= 40) tier = 'MEDIUM';
-
-                return { client, package: pkg, probability: probPercent, tier };
-            });
-
-            updateMetrics();
-            renderTable();
-        }
-
-        function updateMetrics() {
-            document.getElementById('statTotal').innerText = clientData.length;
-            document.getElementById('statHigh').innerText = clientData.filter(d => d.tier === 'HIGH').length;
-            document.getElementById('statMed').innerText = clientData.filter(d => d.tier === 'MEDIUM').length;
-            document.getElementById('statLow').innerText = clientData.filter(d => d.tier === 'LOW').length;
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('tableBody');
-            const selectedTier = document.getElementById('filterTier').value;
-
-            const filteredData = clientData.filter(item => {
-                if (selectedTier === 'ALL') return true;
-                return item.tier === selectedTier;
-            });
-
-            if (filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-500">No records found.</td></tr>`;
-                return;
             }
 
-            tbody.innerHTML = filteredData.map(item => {
-                let badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20';
-                let barColor = 'bg-red-500';
+            // Assign Tier based on score
+            let tier = 'LOW';
+            if (probPercent >= 70) tier = 'HIGH';
+            else if (probPercent >= 40) tier = 'MEDIUM';
 
-                if (item.tier === 'HIGH') {
-                    badgeStyle = 'bg-green-500/10 text-green-400 border-green-500/20';
-                    barColor = 'bg-green-500';
-                } else if (item.tier === 'MEDIUM') {
-                    badgeStyle = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-                    barColor = 'bg-yellow-500';
-                }
+            return { client, package: pkg, probability: probPercent, tier };
+        });
 
-                return `
-                    <tr class="hover:bg-gray-750 border-b border-gray-700/50">
-                        <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
-                        <td class="py-3 px-4 text-gray-300">${item.package}</td>
-                        <td class="py-3 px-4">
-                            <div class="flex items-center space-x-3">
-                                <span class="font-semibold text-white w-10">${item.probability}%</span>
-                                <div class="w-32 bg-gray-700 h-2 rounded-full overflow-hidden">
-                                    <div class="${barColor} h-full rounded-full" style="width: ${item.probability}%"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-3 px-4">
-                            <span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">
-                                ${item.tier}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+        updateMetrics();
+        renderTable();
+    }
+
+    function updateMetrics() {
+        document.getElementById('statTotal').innerText = clientData.length;
+        document.getElementById('statHigh').innerText = clientData.filter(d => d.tier === 'HIGH').length;
+        document.getElementById('statMed').innerText = clientData.filter(d => d.tier === 'MEDIUM').length;
+        document.getElementById('statLow').innerText = clientData.filter(d => d.tier === 'LOW').length;
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const selectedTier = document.getElementById('filterTier').value;
+
+        const filteredData = clientData.filter(item => {
+            if (selectedTier === 'ALL') return true;
+            return item.tier === selectedTier;
+        });
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-500">No records found.</td></tr>`;
+            return;
         }
-    </script>
-</body>
-</html>
+
+        tbody.innerHTML = filteredData.map(item => {
+            let badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20';
+            let barColor = 'bg-red-500';
+
+            if (item.tier === 'HIGH') {
+                badgeStyle = 'bg-green-500/10 text-green-400 border-green-500/20';
+                barColor = 'bg-green-500';
+            } else if (item.tier === 'MEDIUM') {
+                badgeStyle = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+                barColor = 'bg-yellow-500';
+            }
+
+            return `
+                <tr class="hover:bg-gray-750 border-b border-gray-700/50">
+                    <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                    <td class="py-3 px-4 text-gray-300">${item.package}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="font-semibold text-white w-10">${item.probability}%</span>
+                            <div class="w-32 bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full rounded-full" style="width: ${Math.min(item.probability, 100)}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">
+                            ${item.tier}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+</script>
