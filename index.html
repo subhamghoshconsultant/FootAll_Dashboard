@@ -1,129 +1,330 @@
-<script>
-    let clientData = [];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Package Probability & Financial Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for parsing Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome for WhatsApp Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
 
-    document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
-    document.getElementById('filterTier').addEventListener('change', renderTable);
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header & File Input -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Client Package Probability & Metrics Dashboard</h1>
+                <p class="text-sm text-gray-400">Upload your Excel file to generate probabilities, attendance, and financial metrics</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow transition duration-150 inline-block">
+                    <span>Upload Tracker (.xlsx)</span>
+                    <input type="file" id="fileUpload" accept=".xlsx, .xls" class="hidden">
+                </label>
+            </div>
+        </div>
 
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        <!-- Dynamic Probability & Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                <p class="text-xs text-gray-400 uppercase font-semibold">Total Clients</p>
+                <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-xl border border-green-500/30">
+                <p class="text-xs text-green-400 uppercase font-semibold">High Probability (>70%)</p>
+                <p id="statHigh" class="text-2xl font-bold text-green-400 mt-1">0</p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/30">
+                <p class="text-xs text-yellow-400 uppercase font-semibold">Medium Probability (40%-70%)</p>
+                <p id="statMed" class="text-2xl font-bold text-yellow-400 mt-1">0</p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-xl border border-red-500/30">
+                <p class="text-xs text-red-400 uppercase font-semibold">Low Probability (<40%)</p>
+                <p id="statLow" class="text-2xl font-bold text-red-400 mt-1">0</p>
+            </div>
+        </div>
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
+        <!-- Conditional Sections: Attendance & Financial Overview (Hidden until Excel data is provided) -->
+        <div id="additionalMetrics" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+            <div class="bg-gray-800 p-4 rounded-xl border border-indigo-500/30">
+                <p class="text-xs text-indigo-400 uppercase font-semibold">Average Attendance Rate</p>
+                <p id="statAttendance" class="text-2xl font-bold text-indigo-300 mt-1">--</p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-xl border border-emerald-500/30">
+                <p class="text-xs text-emerald-400 uppercase font-semibold">Total Income / Revenue</p>
+                <p id="statIncome" class="text-2xl font-bold text-emerald-400 mt-1">--</p>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-xl border border-rose-500/30">
+                <p class="text-xs text-rose-400 uppercase font-semibold">Total Expenses / Costs</p>
+                <p id="statExpense" class="text-2xl font-bold text-rose-400 mt-1">--</p>
+            </div>
+        </div>
 
-            // Read the first sheet
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
+        <!-- Filters & Dashboard Table -->
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold text-white">Client Overview</h2>
+                
+                <!-- Filter Dropdown -->
+                <div class="flex items-center space-x-2">
+                    <label for="filterTier" class="text-sm text-gray-400">Filter Tier:</label>
+                    <select id="filterTier" class="bg-gray-700 text-white text-sm rounded-lg p-2 border border-gray-600 focus:outline-none">
+                        <option value="ALL">All Tiers</option>
+                        <option value="HIGH">High Probability (>70%)</option>
+                        <option value="MEDIUM">Medium Probability (40-70%)</option>
+                        <option value="LOW">Low Probability (<40%)</option>
+                    </select>
+                </div>
+            </div>
 
-            // Convert sheet to JSON
-            const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-            processExcelData(rawJson);
-        };
-        reader.readAsArrayBuffer(file);
-    }
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead id="tableHeader">
+                        <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                            <th class="py-3 px-4">Client Name</th>
+                            <th class="py-3 px-4">Package</th>
+                            <th class="py-3 px-4">Probability Score</th>
+                            <th class="py-3 px-4">Tier</th>
+                            <th class="py-3 px-4 text-center">Action / WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-700 text-sm">
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-500">
+                                Please upload your Excel file to display tracker data.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    // Helper to search row keys flexibly
-    function getRowValue(row, possibleKeys) {
-        const keys = Object.keys(row);
-        for (let targetKey of possibleKeys) {
-            const matchedKey = keys.find(k => k.trim().toLowerCase().replace(/[\s_]+/g, '') === targetKey.toLowerCase().replace(/[\s_]+/g, ''));
-            if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
-                return row[matchedKey];
-            }
+    </div>
+
+    <!-- Script Section -->
+    <script>
+        let clientData = [];
+        let hasAttendance = false;
+        let hasFinancials = false;
+
+        document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
+        document.getElementById('filterTier').addEventListener('change', renderTable);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                
+                processExcelData(rawJson);
+            };
+            reader.readAsArrayBuffer(file);
         }
-        return null;
-    }
 
-    function processExcelData(data) {
-        clientData = data.map(row => {
-            // Flexible matching for Client Name
-            const client = getRowValue(row, ['Client Name', 'Client', 'Client_Name', 'Customer', 'Account']) || 'Unknown Client';
-            
-            // Flexible matching for Package Name
-            const pkg = getRowValue(row, ['Package Name', 'Package', 'Package_Name', 'Service', 'Plan']) || 'N/A';
-            
-            // Flexible matching for Probability Score
-            let rawProb = getRowValue(row, ['Probability Score', 'Probability', 'Probability%', 'Score', 'Chance', 'Likelihood', 'Prob']);
-            
-            let probPercent = 0;
-            if (rawProb !== null && rawProb !== undefined) {
-                if (typeof rawProb === 'string') {
-                    const cleanStr = rawProb.replace('%', '').trim();
-                    const num = parseFloat(cleanStr);
-                    if (!isNaN(num)) {
-                        probPercent = rawProb.includes('%') || num > 1 ? Math.round(num) : Math.round(num * 100);
-                    }
-                } else if (typeof rawProb === 'number') {
-                    probPercent = rawProb > 1 ? Math.round(rawProb) : Math.round(rawProb * 100);
+        // Helper to match column variations dynamically
+        function getRowValue(row, possibleKeys) {
+            const keys = Object.keys(row);
+            for (let targetKey of possibleKeys) {
+                const matchedKey = keys.find(k => k.trim().toLowerCase().replace(/[\s_]+/g, '') === targetKey.toLowerCase().replace(/[\s_]+/g, ''));
+                if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
+                    return row[matchedKey];
                 }
             }
-
-            // Assign Tier based on score
-            let tier = 'LOW';
-            if (probPercent >= 70) tier = 'HIGH';
-            else if (probPercent >= 40) tier = 'MEDIUM';
-
-            return { client, package: pkg, probability: probPercent, tier };
-        });
-
-        updateMetrics();
-        renderTable();
-    }
-
-    function updateMetrics() {
-        document.getElementById('statTotal').innerText = clientData.length;
-        document.getElementById('statHigh').innerText = clientData.filter(d => d.tier === 'HIGH').length;
-        document.getElementById('statMed').innerText = clientData.filter(d => d.tier === 'MEDIUM').length;
-        document.getElementById('statLow').innerText = clientData.filter(d => d.tier === 'LOW').length;
-    }
-
-    function renderTable() {
-        const tbody = document.getElementById('tableBody');
-        const selectedTier = document.getElementById('filterTier').value;
-
-        const filteredData = clientData.filter(item => {
-            if (selectedTier === 'ALL') return true;
-            return item.tier === selectedTier;
-        });
-
-        if (filteredData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-500">No records found.</td></tr>`;
-            return;
+            return null;
         }
 
-        tbody.innerHTML = filteredData.map(item => {
-            let badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20';
-            let barColor = 'bg-red-500';
+        function processExcelData(data) {
+            hasAttendance = false;
+            hasFinancials = false;
 
-            if (item.tier === 'HIGH') {
-                badgeStyle = 'bg-green-500/10 text-green-400 border-green-500/20';
-                barColor = 'bg-green-500';
-            } else if (item.tier === 'MEDIUM') {
-                badgeStyle = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-                barColor = 'bg-yellow-500';
+            clientData = data.map(row => {
+                const client = getRowValue(row, ['Client Name', 'Client', 'Client_Name', 'Customer', 'Account', 'Name']) || 'Unknown Client';
+                const pkg = getRowValue(row, ['Package Name', 'Package', 'Package_Name', 'Service', 'Plan']) || 'N/A';
+                const phone = getRowValue(row, ['Phone', 'Mobile', 'WhatsApp', 'Contact', 'Phone Number', 'Mobile Number']) || '';
+
+                // Probability calculation
+                let rawProb = getRowValue(row, ['Probability Score', 'Probability', 'Probability%', 'Score', 'Chance', 'Likelihood', 'Prob']);
+                let probPercent = 0;
+                if (rawProb !== null && rawProb !== undefined) {
+                    if (typeof rawProb === 'string') {
+                        const cleanStr = rawProb.replace('%', '').trim();
+                        const num = parseFloat(cleanStr);
+                        if (!isNaN(num)) {
+                            probPercent = rawProb.includes('%') || num > 1 ? Math.round(num) : Math.round(num * 100);
+                        }
+                    } else if (typeof rawProb === 'number') {
+                        probPercent = rawProb > 1 ? Math.round(rawProb) : Math.round(rawProb * 100);
+                    }
+                }
+
+                // Tier calculation
+                let tier = 'LOW';
+                if (probPercent >= 70) tier = 'HIGH';
+                else if (probPercent >= 40) tier = 'MEDIUM';
+
+                // Optional Attendance
+                let attendance = getRowValue(row, ['Attendance', 'Attendance%', 'Attendance Rate', 'Presence']);
+                if (attendance !== null) {
+                    hasAttendance = true;
+                    attendance = parseFloat(String(attendance).replace('%', '')) || 0;
+                }
+
+                // Optional Financials
+                let income = getRowValue(row, ['Income', 'Revenue', 'Package Fee', 'Amount Paid', 'Fee']);
+                let expense = getRowValue(row, ['Expense', 'Expenses', 'Cost', 'Costs']);
+
+                if (income !== null || expense !== null) {
+                    hasFinancials = true;
+                }
+
+                income = parseFloat(String(income).replace(/[^0-9.-]+/g, "")) || 0;
+                expense = parseFloat(String(expense).replace(/[^0-9.-]+/g, "")) || 0;
+
+                return {
+                    client,
+                    package: pkg,
+                    phone: String(phone).replace(/[^0-9]/g, ''),
+                    probability: probPercent,
+                    tier,
+                    attendance,
+                    income,
+                    expense
+                };
+            });
+
+            updateMetrics();
+            renderTable();
+        }
+
+        function updateMetrics() {
+            document.getElementById('statTotal').innerText = clientData.length;
+            document.getElementById('statHigh').innerText = clientData.filter(d => d.tier === 'HIGH').length;
+            document.getElementById('statMed').innerText = clientData.filter(d => d.tier === 'MEDIUM').length;
+            document.getElementById('statLow').innerText = clientData.filter(d => d.tier === 'LOW').length;
+
+            const addMetricsDiv = document.getElementById('additionalMetrics');
+
+            if (hasAttendance || hasFinancials) {
+                addMetricsDiv.classList.remove('hidden');
+
+                if (hasAttendance) {
+                    const validAtt = clientData.filter(d => d.attendance !== null);
+                    const avgAtt = validAtt.reduce((acc, curr) => acc + curr.attendance, 0) / (validAtt.length || 1);
+                    document.getElementById('statAttendance').innerText = `${Math.round(avgAtt)}%`;
+                } else {
+                    document.getElementById('statAttendance').innerText = 'N/A';
+                }
+
+                if (hasFinancials) {
+                    const totalInc = clientData.reduce((acc, curr) => acc + curr.income, 0);
+                    const totalExp = clientData.reduce((acc, curr) => acc + curr.expense, 0);
+                    document.getElementById('statIncome').innerText = `$${totalInc.toLocaleString()}`;
+                    document.getElementById('statExpense').innerText = `$${totalExp.toLocaleString()}`;
+                } else {
+                    document.getElementById('statIncome').innerText = 'N/A';
+                    document.getElementById('statExpense').innerText = 'N/A';
+                }
+            } else {
+                addMetricsDiv.classList.add('hidden');
             }
+        }
 
-            return `
-                <tr class="hover:bg-gray-750 border-b border-gray-700/50">
-                    <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
-                    <td class="py-3 px-4 text-gray-300">${item.package}</td>
-                    <td class="py-3 px-4">
-                        <div class="flex items-center space-x-3">
-                            <span class="font-semibold text-white w-10">${item.probability}%</span>
-                            <div class="w-32 bg-gray-700 h-2 rounded-full overflow-hidden">
-                                <div class="${barColor} h-full rounded-full" style="width: ${Math.min(item.probability, 100)}%"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4">
-                        <span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">
-                            ${item.tier}
-                        </span>
-                    </td>
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const thead = document.getElementById('tableHeader');
+            const selectedTier = document.getElementById('filterTier').value;
+
+            // Build dynamic headers based on present columns
+            let headerHTML = `
+                <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                    <th class="py-3 px-4">Client Name</th>
+                    <th class="py-3 px-4">Package</th>
+                    ${hasAttendance ? '<th class="py-3 px-4">Attendance</th>' : ''}
+                    ${hasFinancials ? '<th class="py-3 px-4">Income / Expense</th>' : ''}
+                    <th class="py-3 px-4">Probability Score</th>
+                    <th class="py-3 px-4">Tier</th>
+                    <th class="py-3 px-4 text-center">Action / WhatsApp</th>
                 </tr>
             `;
-        }).join('');
-    }
-</script>
+            thead.innerHTML = headerHTML;
+
+            const filteredData = clientData.filter(item => {
+                if (selectedTier === 'ALL') return true;
+                return item.tier === selectedTier;
+            });
+
+            if (filteredData.length === 0) {
+                const totalCols = 4 + (hasAttendance ? 1 : 0) + (hasFinancials ? 1 : 0);
+                tbody.innerHTML = `<tr><td colspan="${totalCols}" class="py-6 text-center text-gray-500">No records found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(item => {
+                let badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20';
+                let barColor = 'bg-red-500';
+
+                if (item.tier === 'HIGH') {
+                    badgeStyle = 'bg-green-500/10 text-green-400 border-green-500/20';
+                    barColor = 'bg-green-500';
+                } else if (item.tier === 'MEDIUM') {
+                    badgeStyle = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+                    barColor = 'bg-yellow-500';
+                }
+
+                // WhatsApp setup for High Probability Clients
+                let actionHTML = `<span class="text-gray-500 text-xs">--</span>`;
+                if (item.tier === 'HIGH') {
+                    const message = encodeURIComponent(`Hello ${item.client}, we noticed you are eligible for our ${item.package} package! Let us know if you would like to complete your enrollment.`);
+                    const waUrl = item.phone ? `https://wa.me/${item.phone}?text=${message}` : `https://wa.me/?text=${message}`;
+
+                    actionHTML = `
+                        <a href="${waUrl}" target="_blank" title="Send WhatsApp Message" 
+                           class="inline-flex items-center space-x-1.5 bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow transition duration-150">
+                            <i class="fab fa-whatsapp text-sm"></i>
+                            <span>Send Offer</span>
+                        </a>
+                    `;
+                }
+
+                return `
+                    <tr class="hover:bg-gray-750 border-b border-gray-700/50">
+                        <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                        <td class="py-3 px-4 text-gray-300">${item.package}</td>
+                        ${hasAttendance ? `<td class="py-3 px-4 text-gray-300">${item.attendance !== null ? item.attendance + '%' : '--'}</td>` : ''}
+                        ${hasFinancials ? `<td class="py-3 px-4 text-xs"><span class="text-emerald-400">$${item.income}</span> / <span class="text-rose-400">$${item.expense}</span></td>` : ''}
+                        <td class="py-3 px-4">
+                            <div class="flex items-center space-x-3">
+                                <span class="font-semibold text-white w-10">${item.probability}%</span>
+                                <div class="w-28 bg-gray-700 h-2 rounded-full overflow-hidden">
+                                    <div class="${barColor} h-full rounded-full" style="width: ${Math.min(item.probability, 100)}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">
+                                ${item.tier}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            ${actionHTML}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
