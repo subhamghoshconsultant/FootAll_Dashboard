@@ -8,18 +8,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for parsing Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- FontAwesome for WhatsApp Icon -->
+    <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
 
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <!-- Header & File Input -->
+        <!-- Header & File Upload -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
             <div>
-                <h1 class="text-2xl font-bold text-white">Client Package Probability & Metrics Dashboard</h1>
-                <p class="text-sm text-gray-400">Upload your Excel file to generate probabilities, attendance, and financial metrics</p>
+                <h1 class="text-2xl font-bold text-white">Client Package & Metrics Dashboard</h1>
+                <p class="text-sm text-gray-400">Upload your Excel file to populate probability, financial, and attendance analytics</p>
             </div>
             <div class="mt-4 md:mt-0">
                 <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow transition duration-150 inline-block">
@@ -29,49 +29,92 @@
             </div>
         </div>
 
-        <!-- Dynamic Probability & Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                <p class="text-xs text-gray-400 uppercase font-semibold">Total Clients</p>
-                <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-green-500/30">
-                <p class="text-xs text-green-400 uppercase font-semibold">High Probability (>70%)</p>
-                <p id="statHigh" class="text-2xl font-bold text-green-400 mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/30">
-                <p class="text-xs text-yellow-400 uppercase font-semibold">Medium Probability (40%-70%)</p>
-                <p id="statMed" class="text-2xl font-bold text-yellow-400 mt-1">0</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-red-500/30">
-                <p class="text-xs text-red-400 uppercase font-semibold">Low Probability (<40%)</p>
-                <p id="statLow" class="text-2xl font-bold text-red-400 mt-1">0</p>
-            </div>
-        </div>
-
-        <!-- Conditional Sections: Attendance & Financial Overview (Hidden until Excel data is provided) -->
-        <div id="additionalMetrics" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
-            <div class="bg-gray-800 p-4 rounded-xl border border-indigo-500/30">
-                <p class="text-xs text-indigo-400 uppercase font-semibold">Average Attendance Rate</p>
-                <p id="statAttendance" class="text-2xl font-bold text-indigo-300 mt-1">--</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-emerald-500/30">
-                <p class="text-xs text-emerald-400 uppercase font-semibold">Total Income / Revenue</p>
-                <p id="statIncome" class="text-2xl font-bold text-emerald-400 mt-1">--</p>
-            </div>
-            <div class="bg-gray-800 p-4 rounded-xl border border-rose-500/30">
-                <p class="text-xs text-rose-400 uppercase font-semibold">Total Expenses / Costs</p>
-                <p id="statExpense" class="text-2xl font-bold text-rose-400 mt-1">--</p>
+        <!-- 1. PROBABILITY OVERVIEW SECTION -->
+        <div>
+            <h2 class="text-lg font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-blue-400"></i> Client Probability Summary
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Total Clients</p>
+                    <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-green-500/30">
+                    <p class="text-xs text-green-400 uppercase font-semibold">High Probability (>70%)</p>
+                    <p id="statHigh" class="text-2xl font-bold text-green-400 mt-1">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/30">
+                    <p class="text-xs text-yellow-400 uppercase font-semibold">Medium Probability (40%-70%)</p>
+                    <p id="statMed" class="text-2xl font-bold text-yellow-400 mt-1">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-red-500/30">
+                    <p class="text-xs text-red-400 uppercase font-semibold">Low Probability (<40%)</p>
+                    <p id="statLow" class="text-2xl font-bold text-red-400 mt-1">0</p>
+                </div>
             </div>
         </div>
 
-        <!-- Filters & Dashboard Table -->
+        <!-- 2. SEPARATE INCOME & EXPENSE SECTION -->
+        <div id="financialSection" class="hidden">
+            <h2 class="text-lg font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <i class="fas fa-wallet text-emerald-400"></i> Financial Analytics (Income vs Expense)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-4 rounded-xl border border-emerald-500/30">
+                    <p class="text-xs text-emerald-400 uppercase font-semibold">Total Revenue / Income</p>
+                    <p id="statTotalIncome" class="text-2xl font-bold text-emerald-400 mt-1">$0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-rose-500/30">
+                    <p class="text-xs text-rose-400 uppercase font-semibold">Total Expenses</p>
+                    <p id="statTotalExpense" class="text-2xl font-bold text-rose-400 mt-1">$0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-blue-500/30">
+                    <p class="text-xs text-blue-400 uppercase font-semibold">Net Profit / Margin</p>
+                    <p id="statNetProfit" class="text-2xl font-bold text-blue-400 mt-1">$0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. SEPARATE ATTENDANCE SECTION -->
+        <div id="attendanceSection" class="hidden">
+            <h2 class="text-lg font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <i class="fas fa-user-check text-indigo-400"></i> Attendance Tracking Section
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-4 rounded-xl border border-indigo-500/30">
+                    <p class="text-xs text-indigo-400 uppercase font-semibold">Avg. Attendance Rate</p>
+                    <p id="statAvgAttendance" class="text-2xl font-bold text-indigo-300 mt-1">0%</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-teal-500/30">
+                    <p class="text-xs text-teal-400 uppercase font-semibold">Active Attending Clients (>80%)</p>
+                    <p id="statHighAttendance" class="text-2xl font-bold text-teal-300 mt-1">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-xl border border-amber-500/30">
+                    <p class="text-xs text-amber-400 uppercase font-semibold">Low Attendance Risk (<50%)</p>
+                    <p id="statLowAttendance" class="text-2xl font-bold text-amber-300 mt-1">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN DATA TABLE & SECTION NAVIGATION -->
         <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-xl font-bold text-white">Client Overview</h2>
-                
-                <!-- Filter Dropdown -->
-                <div class="flex items-center space-x-2">
+            
+            <!-- Tab Controls -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-700 pb-4">
+                <div class="flex space-x-2">
+                    <button id="tabProb" onclick="switchTab('prob')" class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white">
+                        Client Probabilities
+                    </button>
+                    <button id="tabFin" onclick="switchTab('fin')" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600">
+                        Income & Expense
+                    </button>
+                    <button id="tabAtt" onclick="switchTab('att')" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600">
+                        Attendance Tracker
+                    </button>
+                </div>
+
+                <!-- Tier Filter for Probability Tab -->
+                <div id="probFilterContainer" class="flex items-center space-x-2">
                     <label for="filterTier" class="text-sm text-gray-400">Filter Tier:</label>
                     <select id="filterTier" class="bg-gray-700 text-white text-sm rounded-lg p-2 border border-gray-600 focus:outline-none">
                         <option value="ALL">All Tiers</option>
@@ -82,22 +125,16 @@
                 </div>
             </div>
 
-            <!-- Table -->
+            <!-- Dynamic Table Container -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead id="tableHeader">
-                        <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
-                            <th class="py-3 px-4">Client Name</th>
-                            <th class="py-3 px-4">Package</th>
-                            <th class="py-3 px-4">Probability Score</th>
-                            <th class="py-3 px-4">Tier</th>
-                            <th class="py-3 px-4 text-center">Action / WhatsApp</th>
-                        </tr>
+                        <!-- Populated by JS -->
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-700 text-sm">
                         <tr>
                             <td colspan="5" class="py-8 text-center text-gray-500">
-                                Please upload your Excel file to display tracker data.
+                                Please upload your Excel file to populate data across sections.
                             </td>
                         </tr>
                     </tbody>
@@ -112,6 +149,7 @@
         let clientData = [];
         let hasAttendance = false;
         let hasFinancials = false;
+        let currentTab = 'prob';
 
         document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
         document.getElementById('filterTier').addEventListener('change', renderTable);
@@ -134,7 +172,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Helper to match column variations dynamically
         function getRowValue(row, possibleKeys) {
             const keys = Object.keys(row);
             for (let targetKey of possibleKeys) {
@@ -153,10 +190,10 @@
             clientData = data.map(row => {
                 const client = getRowValue(row, ['Client Name', 'Client', 'Client_Name', 'Customer', 'Account', 'Name']) || 'Unknown Client';
                 const pkg = getRowValue(row, ['Package Name', 'Package', 'Package_Name', 'Service', 'Plan']) || 'N/A';
-                const phone = getRowValue(row, ['Phone', 'Mobile', 'WhatsApp', 'Contact', 'Phone Number', 'Mobile Number']) || '';
+                const phone = getRowValue(row, ['Phone', 'Mobile', 'WhatsApp', 'Contact', 'Phone Number']) || '';
 
                 // Probability calculation
-                let rawProb = getRowValue(row, ['Probability Score', 'Probability', 'Probability%', 'Score', 'Chance', 'Likelihood', 'Prob']);
+                let rawProb = getRowValue(row, ['Probability Score', 'Probability', 'Probability%', 'Score', 'Chance', 'Prob']);
                 let probPercent = 0;
                 if (rawProb !== null && rawProb !== undefined) {
                     if (typeof rawProb === 'string') {
@@ -170,28 +207,28 @@
                     }
                 }
 
-                // Tier calculation
                 let tier = 'LOW';
                 if (probPercent >= 70) tier = 'HIGH';
                 else if (probPercent >= 40) tier = 'MEDIUM';
 
-                // Optional Attendance
-                let attendance = getRowValue(row, ['Attendance', 'Attendance%', 'Attendance Rate', 'Presence']);
-                if (attendance !== null) {
+                // Attendance Parsing
+                let attendanceVal = getRowValue(row, ['Attendance', 'Attendance%', 'Attendance Rate', 'Presence']);
+                let attendance = null;
+                if (attendanceVal !== null) {
                     hasAttendance = true;
-                    attendance = parseFloat(String(attendance).replace('%', '')) || 0;
+                    attendance = parseFloat(String(attendanceVal).replace('%', '')) || 0;
                 }
 
-                // Optional Financials
-                let income = getRowValue(row, ['Income', 'Revenue', 'Package Fee', 'Amount Paid', 'Fee']);
-                let expense = getRowValue(row, ['Expense', 'Expenses', 'Cost', 'Costs']);
+                // Financial Parsing
+                let incomeVal = getRowValue(row, ['Income', 'Revenue', 'Package Fee', 'Amount Paid', 'Fee']);
+                let expenseVal = getRowValue(row, ['Expense', 'Expenses', 'Cost', 'Costs']);
 
-                if (income !== null || expense !== null) {
+                if (incomeVal !== null || expenseVal !== null) {
                     hasFinancials = true;
                 }
 
-                income = parseFloat(String(income).replace(/[^0-9.-]+/g, "")) || 0;
-                expense = parseFloat(String(expense).replace(/[^0-9.-]+/g, "")) || 0;
+                const income = parseFloat(String(incomeVal || 0).replace(/[^0-9.-]+/g, "")) || 0;
+                const expense = parseFloat(String(expenseVal || 0).replace(/[^0-9.-]+/g, "")) || 0;
 
                 return {
                     client,
@@ -205,125 +242,174 @@
                 };
             });
 
+            // Display dynamic sections based on available data
+            if (hasFinancials) document.getElementById('financialSection').classList.remove('hidden');
+            if (hasAttendance) document.getElementById('attendanceSection').classList.remove('hidden');
+
             updateMetrics();
             renderTable();
         }
 
         function updateMetrics() {
+            // Probability Metrics
             document.getElementById('statTotal').innerText = clientData.length;
             document.getElementById('statHigh').innerText = clientData.filter(d => d.tier === 'HIGH').length;
             document.getElementById('statMed').innerText = clientData.filter(d => d.tier === 'MEDIUM').length;
             document.getElementById('statLow').innerText = clientData.filter(d => d.tier === 'LOW').length;
 
-            const addMetricsDiv = document.getElementById('additionalMetrics');
+            // Financial Metrics
+            if (hasFinancials) {
+                const totalInc = clientData.reduce((acc, c) => acc + c.income, 0);
+                const totalExp = clientData.reduce((acc, c) => acc + c.expense, 0);
+                const netProfit = totalInc - totalExp;
 
-            if (hasAttendance || hasFinancials) {
-                addMetricsDiv.classList.remove('hidden');
-
-                if (hasAttendance) {
-                    const validAtt = clientData.filter(d => d.attendance !== null);
-                    const avgAtt = validAtt.reduce((acc, curr) => acc + curr.attendance, 0) / (validAtt.length || 1);
-                    document.getElementById('statAttendance').innerText = `${Math.round(avgAtt)}%`;
-                } else {
-                    document.getElementById('statAttendance').innerText = 'N/A';
-                }
-
-                if (hasFinancials) {
-                    const totalInc = clientData.reduce((acc, curr) => acc + curr.income, 0);
-                    const totalExp = clientData.reduce((acc, curr) => acc + curr.expense, 0);
-                    document.getElementById('statIncome').innerText = `$${totalInc.toLocaleString()}`;
-                    document.getElementById('statExpense').innerText = `$${totalExp.toLocaleString()}`;
-                } else {
-                    document.getElementById('statIncome').innerText = 'N/A';
-                    document.getElementById('statExpense').innerText = 'N/A';
-                }
-            } else {
-                addMetricsDiv.classList.add('hidden');
+                document.getElementById('statTotalIncome').innerText = `$${totalInc.toLocaleString()}`;
+                document.getElementById('statTotalExpense').innerText = `$${totalExp.toLocaleString()}`;
+                document.getElementById('statNetProfit').innerText = `$${netProfit.toLocaleString()}`;
             }
+
+            // Attendance Metrics
+            if (hasAttendance) {
+                const validAtt = clientData.filter(d => d.attendance !== null);
+                const avgAtt = validAtt.reduce((acc, c) => acc + c.attendance, 0) / (validAtt.length || 1);
+                
+                document.getElementById('statAvgAttendance').innerText = `${Math.round(avgAtt)}%`;
+                document.getElementById('statHighAttendance').innerText = validAtt.filter(d => d.attendance >= 80).length;
+                document.getElementById('statLowAttendance').innerText = validAtt.filter(d => d.attendance < 50).length;
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabProb = document.getElementById('tabProb');
+            const tabFin = document.getElementById('tabFin');
+            const tabAtt = document.getElementById('tabAtt');
+            const filterContainer = document.getElementById('probFilterContainer');
+
+            // Reset tab button states
+            [tabProb, tabFin, tabAtt].forEach(btn => btn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600');
+
+            if (tab === 'prob') {
+                tabProb.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white';
+                filterContainer.style.display = 'flex';
+            } else if (tab === 'fin') {
+                tabFin.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 text-white';
+                filterContainer.style.display = 'none';
+            } else if (tab === 'att') {
+                tabAtt.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white';
+                filterContainer.style.display = 'none';
+            }
+
+            renderTable();
         }
 
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             const thead = document.getElementById('tableHeader');
-            const selectedTier = document.getElementById('filterTier').value;
 
-            // Build dynamic headers based on present columns
-            let headerHTML = `
-                <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
-                    <th class="py-3 px-4">Client Name</th>
-                    <th class="py-3 px-4">Package</th>
-                    ${hasAttendance ? '<th class="py-3 px-4">Attendance</th>' : ''}
-                    ${hasFinancials ? '<th class="py-3 px-4">Income / Expense</th>' : ''}
-                    <th class="py-3 px-4">Probability Score</th>
-                    <th class="py-3 px-4">Tier</th>
-                    <th class="py-3 px-4 text-center">Action / WhatsApp</th>
-                </tr>
-            `;
-            thead.innerHTML = headerHTML;
+            if (clientData.length === 0) return;
 
-            const filteredData = clientData.filter(item => {
-                if (selectedTier === 'ALL') return true;
-                return item.tier === selectedTier;
-            });
+            if (currentTab === 'prob') {
+                const selectedTier = document.getElementById('filterTier').value;
+                const filteredData = clientData.filter(item => selectedTier === 'ALL' || item.tier === selectedTier);
 
-            if (filteredData.length === 0) {
-                const totalCols = 4 + (hasAttendance ? 1 : 0) + (hasFinancials ? 1 : 0);
-                tbody.innerHTML = `<tr><td colspan="${totalCols}" class="py-6 text-center text-gray-500">No records found.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filteredData.map(item => {
-                let badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/20';
-                let barColor = 'bg-red-500';
-
-                if (item.tier === 'HIGH') {
-                    badgeStyle = 'bg-green-500/10 text-green-400 border-green-500/20';
-                    barColor = 'bg-green-500';
-                } else if (item.tier === 'MEDIUM') {
-                    badgeStyle = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-                    barColor = 'bg-yellow-500';
-                }
-
-                // WhatsApp setup for High Probability Clients
-                let actionHTML = `<span class="text-gray-500 text-xs">--</span>`;
-                if (item.tier === 'HIGH') {
-                    const message = encodeURIComponent(`Hello ${item.client}, we noticed you are eligible for our ${item.package} package! Let us know if you would like to complete your enrollment.`);
-                    const waUrl = item.phone ? `https://wa.me/${item.phone}?text=${message}` : `https://wa.me/?text=${message}`;
-
-                    actionHTML = `
-                        <a href="${waUrl}" target="_blank" title="Send WhatsApp Message" 
-                           class="inline-flex items-center space-x-1.5 bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow transition duration-150">
-                            <i class="fab fa-whatsapp text-sm"></i>
-                            <span>Send Offer</span>
-                        </a>
-                    `;
-                }
-
-                return `
-                    <tr class="hover:bg-gray-750 border-b border-gray-700/50">
-                        <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
-                        <td class="py-3 px-4 text-gray-300">${item.package}</td>
-                        ${hasAttendance ? `<td class="py-3 px-4 text-gray-300">${item.attendance !== null ? item.attendance + '%' : '--'}</td>` : ''}
-                        ${hasFinancials ? `<td class="py-3 px-4 text-xs"><span class="text-emerald-400">$${item.income}</span> / <span class="text-rose-400">$${item.expense}</span></td>` : ''}
-                        <td class="py-3 px-4">
-                            <div class="flex items-center space-x-3">
-                                <span class="font-semibold text-white w-10">${item.probability}%</span>
-                                <div class="w-28 bg-gray-700 h-2 rounded-full overflow-hidden">
-                                    <div class="${barColor} h-full rounded-full" style="width: ${Math.min(item.probability, 100)}%"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-3 px-4">
-                            <span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">
-                                ${item.tier}
-                            </span>
-                        </td>
-                        <td class="py-3 px-4 text-center">
-                            ${actionHTML}
-                        </td>
+                thead.innerHTML = `
+                    <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                        <th class="py-3 px-4">Client Name</th>
+                        <th class="py-3 px-4">Package</th>
+                        <th class="py-3 px-4">Probability Score</th>
+                        <th class="py-3 px-4">Tier</th>
+                        <th class="py-3 px-4 text-center">Action / WhatsApp</th>
                     </tr>
                 `;
-            }).join('');
+
+                tbody.innerHTML = filteredData.map(item => {
+                    let badgeStyle = item.tier === 'HIGH' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                     item.tier === 'MEDIUM' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                     'bg-red-500/10 text-red-400 border-red-500/20';
+                    let barColor = item.tier === 'HIGH' ? 'bg-green-500' : item.tier === 'MEDIUM' ? 'bg-yellow-500' : 'bg-red-500';
+
+                    let actionHTML = `<span class="text-gray-500 text-xs">--</span>`;
+                    if (item.tier === 'HIGH') {
+                        const msg = encodeURIComponent(`Hello ${item.client}, you are eligible for our ${item.package} package! Reply to get started.`);
+                        const waUrl = item.phone ? `https://wa.me/${item.phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+                        actionHTML = `
+                            <a href="${waUrl}" target="_blank" class="inline-flex items-center space-x-1.5 bg-green-600 hover:bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow">
+                                <i class="fab fa-whatsapp text-sm"></i>
+                                <span>Send Offer</span>
+                            </a>
+                        `;
+                    }
+
+                    return `
+                        <tr class="hover:bg-gray-750 border-b border-gray-700/50">
+                            <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                            <td class="py-3 px-4 text-gray-300">${item.package}</td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-3">
+                                    <span class="font-semibold text-white w-10">${item.probability}%</span>
+                                    <div class="w-28 bg-gray-700 h-2 rounded-full overflow-hidden">
+                                        <div class="${barColor} h-full rounded-full" style="width: ${Math.min(item.probability, 100)}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4"><span class="px-2.5 py-1 text-xs font-medium rounded-full border ${badgeStyle}">${item.tier}</span></td>
+                            <td class="py-3 px-4 text-center">${actionHTML}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } else if (currentTab === 'fin') {
+                thead.innerHTML = `
+                    <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                        <th class="py-3 px-4">Client Name</th>
+                        <th class="py-3 px-4">Package</th>
+                        <th class="py-3 px-4">Income ($)</th>
+                        <th class="py-3 px-4">Expense ($)</th>
+                        <th class="py-3 px-4">Net Profit ($)</th>
+                    </tr>
+                `;
+
+                tbody.innerHTML = clientData.map(item => {
+                    const profit = item.income - item.expense;
+                    return `
+                        <tr class="hover:bg-gray-750 border-b border-gray-700/50">
+                            <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                            <td class="py-3 px-4 text-gray-300">${item.package}</td>
+                            <td class="py-3 px-4 text-emerald-400 font-medium">$${item.income.toLocaleString()}</td>
+                            <td class="py-3 px-4 text-rose-400 font-medium">$${item.expense.toLocaleString()}</td>
+                            <td class="py-3 px-4 font-bold ${profit >= 0 ? 'text-blue-400' : 'text-red-400'}">$${profit.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } else if (currentTab === 'att') {
+                thead.innerHTML = `
+                    <tr class="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                        <th class="py-3 px-4">Client Name</th>
+                        <th class="py-3 px-4">Package</th>
+                        <th class="py-3 px-4">Attendance Rate</th>
+                        <th class="py-3 px-4">Status</th>
+                    </tr>
+                `;
+
+                tbody.innerHTML = clientData.map(item => {
+                    const att = item.attendance !== null ? item.attendance : 0;
+                    const statusBadge = att >= 80 ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
+                                        att >= 50 ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                        'bg-amber-500/10 text-amber-400 border-amber-500/20';
+                    const statusLabel = att >= 80 ? 'Regular' : att >= 50 ? 'Average' : 'At-Risk';
+
+                    return `
+                        <tr class="hover:bg-gray-750 border-b border-gray-700/50">
+                            <td class="py-3 px-4 font-semibold text-white">${item.client}</td>
+                            <td class="py-3 px-4 text-gray-300">${item.package}</td>
+                            <td class="py-3 px-4 font-semibold text-white">${item.attendance !== null ? att + '%' : 'N/A'}</td>
+                            <td class="py-3 px-4"><span class="px-2.5 py-1 text-xs font-medium rounded-full border ${statusBadge}">${statusLabel}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
     </script>
 </body>
