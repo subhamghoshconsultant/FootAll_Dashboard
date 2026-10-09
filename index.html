@@ -34,7 +34,7 @@
         .metric-card .value { font-size: 1.5rem; font-weight: bold; color: #0f172a; }
         .metric-card .sub-value { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
 
-        /* Dashboard Data Tables */
+        /* Dashboard Data Tables & FB Cards */
         .dashboard-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
         .table-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
         .table-container { overflow-x: auto; max-height: 300px; margin-top: 10px; }
@@ -42,9 +42,20 @@
         th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
         th { background-color: #f1f5f9; position: sticky; top: 0; }
 
-        /* WhatsApp Button */
+        /* WhatsApp Buttons */
         .btn-wa { background-color: #25D366; color: white; padding: 4px 10px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; }
         .btn-wa:hover { background-color: #128C7E; }
+        .btn-wa-bulk { background-color: #25D366; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-wa-bulk:hover { background-color: #128C7E; }
+
+        /* FB Card Styles */
+        .fb-post { background: #f8fafc; border-left: 4px solid #1877F2; padding: 15px; border-radius: 6px; margin-top: 15px; }
+        .fb-post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .fb-post-title { font-weight: 600; color: #1e293b; font-size: 0.95rem; }
+        .fb-post-date { font-size: 0.75rem; color: #64748b; }
+        .fb-post-body { font-size: 0.85rem; color: #475569; line-height: 1.5; margin: 0; }
+        .fb-tags { margin-top: 10px; }
+        .fb-tag { display: inline-block; background-color: #e2e8f0; color: #475569; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -56,7 +67,7 @@
         <h2>Upload Latest Excel Documents</h2>
         <p style="color: #64748b; font-size: 0.9rem;">Upload files for specific categories. Unuploaded data will remain intact. Any file name is accepted.</p>
         
-        <div class="upload-grid">
+        <div class="upload-grid" style="grid-template-columns: repeat(2, 1fr);">
             <div class="upload-card">
                 <label for="uploadClient">1. Client Details</label>
                 <input type="file" id="uploadClient" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'client')">
@@ -66,16 +77,6 @@
                 <label for="uploadAttendance">2. Attendance Details</label>
                 <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
                 <span id="status-attendance" class="status-badge">Default Data</span>
-            </div>
-            <div class="upload-card">
-                <label for="uploadIncome">3. Income Details</label>
-                <input type="file" id="uploadIncome" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'income')">
-                <span id="status-income" class="status-badge">Default Data</span>
-            </div>
-            <div class="upload-card">
-                <label for="uploadExpense">4. Expense Details</label>
-                <input type="file" id="uploadExpense" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'expense')">
-                <span id="status-expense" class="status-badge">Default Data</span>
             </div>
         </div>
     </div>
@@ -97,41 +98,79 @@
             <div class="value" id="metric-attendance">0</div>
             <div class="sub-value" id="metric-attendance-sub">0% of total working days</div>
         </div>
-        <div class="metric-card" style="border-left-color: #8b5cf6;">
-            <h3>Total Income (Current)</h3>
-            <div class="value" id="metric-income">$0.00</div>
-            <div class="sub-value" id="metric-income-sub">Predicted Monthly: $0.00</div>
+        <div class="metric-card" style="border-left-color: #1877F2;">
+            <h3>Latest FB Ad Run</h3>
+            <div class="value">Sep 18</div>
+            <div class="sub-value">Morning Skincare Campaign</div>
         </div>
-        <div class="metric-card" style="border-left-color: #ef4444;">
-            <h3>Total Expense</h3>
-            <div class="value" id="metric-expense">$0.00</div>
-            <div class="sub-value" id="metric-expense-sub">0% of Total Income</div>
+        <div class="metric-card" style="border-left-color: #f59e0b;">
+            <h3>Social Inquiries</h3>
+            <div class="value">+91 98314 28224</div>
+            <div class="sub-value">Active WhatsApp Line</div>
         </div>
     </div>
 
     <!-- 3. DASHBOARD DATA DISPLAY -->
     <div class="dashboard-tables">
-        <div class="table-card">
-            <h3>Client Details (Usage & Comms)</h3>
+        
+        <!-- Client Table -->
+        <div class="table-card" style="grid-column: span 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0;">Client Details (Usage & Comms)</h3>
+                <button class="btn-wa-bulk" onclick="autoSendWhatsApp()">📲 Auto-Send to >90%</button>
+            </div>
             <div class="table-container" id="container-client"><em>No client data loaded.</em></div>
         </div>
-        <div class="table-card">
+
+        <!-- Attendance Table -->
+        <div class="table-card" style="grid-column: span 1;">
             <h3>Attendance Details</h3>
             <div class="table-container" id="container-attendance"><em>No attendance data loaded.</em></div>
         </div>
-        <div class="table-card">
-            <h3>Income Details</h3>
-            <div class="table-container" id="container-income"><em>No income data loaded.</em></div>
-        </div>
-        <div class="table-card">
-            <h3>Expense Details</h3>
-            <div class="table-container" id="container-expense"><em>No expense data loaded.</em></div>
+
+        <!-- Latest Facebook Campaigns -->
+        <div class="table-card" style="grid-column: 1 / -1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 style="margin: 0;">Latest Campaigns (FootAll Facebook Page)</h3>
+                <a href="https://www.facebook.com/p/FootAll-61577164101559/" target="_blank" style="font-size: 0.85rem; color: #1877F2; text-decoration: none; font-weight: bold;">View Live Page ↗</a>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                
+                <!-- Ad 1 -->
+                <div class="fb-post">
+                    <div class="fb-post-header">
+                        <span class="fb-post-title">Morning Skincare Routine</span>
+                        <span class="fb-post-date">Sep 18, 2026</span>
+                    </div>
+                    <p class="fb-post-body">An effective morning skincare routine is all about protection and prevention. While nighttime routines focus on repair, your morning steps shield your skin from environmental aggressors like UV rays, pollution, and free radicals.</p>
+                    <div class="fb-tags">
+                        <span class="fb-tag">#skincare</span>
+                        <span class="fb-tag">#footall_ft</span>
+                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">Informational Ad</span>
+                    </div>
+                </div>
+
+                <!-- Ad 2 -->
+                <div class="fb-post">
+                    <div class="fb-post-header">
+                        <span class="fb-post-title">Ice vs. Heat for Foot Pain</span>
+                        <span class="fb-post-date">Sep 13, 2026</span>
+                    </div>
+                    <p class="fb-post-body">Ice vs. heat for foot pain is a common question because both can feel helpful, but they work in different situations. As a general rule, ice is usually better for recent foot pain, swelling, sharp pain, or a new injury. Heat is usually better for stiffness, tightness, chronic soreness, or tired feet.</p>
+                    <div class="fb-tags">
+                        <span class="fb-tag">#footpain</span>
+                        <span class="fb-tag">#footspa</span>
+                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">16 Likes</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         // Central State Store
-        let dashboardData = { client: [], attendance: [], income: [], expense: [] };
+        let dashboardData = { client: [], attendance: [] };
 
         // 1. File Upload Handler
         function handleFileUpload(event, category) {
@@ -175,50 +214,15 @@
             return "N/A";
         }
 
-        // 3. Category Row Normalizer
-        // function normalizeRows(rows, category) {
-        //     return rows.map((row) => {
-        //         switch (category) {
-        //             case "client":
-        //                 return {
-        //                     name: getFieldValue(row, ["client name", "client", "name", "customer"]),
-        //                     usage: parseFloat(getFieldValue(row, ["usage", "usage %", "probability", "package usage"])) || 0,
-        //                     phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
-        //                 };
-        //             case "attendance":
-        //                 return {
-        //                     date: getFieldValue(row, ["date", "day", "attendance date"]),
-        //                     present: parseFloat(getFieldValue(row, ["present", "present count", "attended", "p"])) || 0,
-        //                     absent: parseFloat(getFieldValue(row, ["absent", "absent count", "a", "leave"])) || 0
-        //                 };
-        //             case "income":
-        //                 return {
-        //                     source: getFieldValue(row, ["source", "income source", "category", "description"]),
-        //                     amount: parseFloat(getFieldValue(row, ["amount", "income", "total", "value"])) || 0
-        //                 };
-        //             case "expense":
-        //                 return {
-        //                     category: getFieldValue(row, ["category", "expense category", "item"]),
-        //                     amount: parseFloat(getFieldValue(row, ["amount", "expense", "cost", "total"])) || 0
-        //                 };
-        //             default:
-        //                 return row;
-        //         }
-        //     });
-        // } 
-
-        // 3. Robust Number & Percentage Parser
         // 3. Robust Number & Percentage Parser
         function parseNumeric(val, isPercentage = false) {
             if (val === undefined || val === null || val === "" || val === "N/A") return 0;
             
             let num = 0;
             if (typeof val === 'string') {
-                // Strips out currency symbols, commas, and percentage signs so "56%" or "$5,000" parse correctly
                 num = parseFloat(val.replace(/[^0-9.-]/g, ''));
             } else if (typeof val === 'number') {
                 num = val;
-                // If Excel parsed a % formatted cell, it gives a decimal (e.g., 95% -> 0.95). Multiply by 100 to fix.
                 if (isPercentage && num > 0 && num <= 1) {
                     num = num * 100;
                 }
@@ -226,14 +230,13 @@
             return isNaN(num) ? 0 : num;
         }
 
-        // 4. Category Row Normalizer (Replaces your existing one)
+        // 4. Category Row Normalizer
         function normalizeRows(rows, category) {
             return rows.map((row) => {
                 switch (category) {
                     case "client":
                         return {
                             name: getFieldValue(row, ["client name", "client", "name", "customer"]),
-                            // Passes "true" to parseNumeric to handle decimals and % signs securely
                             usage: parseNumeric(getFieldValue(row, ["usage", "usage %", "probability", "package usage"]), true),
                             phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
                         };
@@ -243,47 +246,27 @@
                             present: parseNumeric(getFieldValue(row, ["present", "present count", "attended", "p"])),
                             absent: parseNumeric(getFieldValue(row, ["absent", "absent count", "a", "leave"]))
                         };
-                    case "income":
-                        return {
-                            source: getFieldValue(row, ["source", "income source", "category", "description"]),
-                            amount: parseNumeric(getFieldValue(row, ["amount", "income", "total", "value"]))
-                        };
-                    case "expense":
-                        return {
-                            category: getFieldValue(row, ["category", "expense category", "item"]),
-                            amount: parseNumeric(getFieldValue(row, ["amount", "expense", "cost", "total"]))
-                        };
                     default:
                         return row;
                 }
             });
         }
 
-        // 4. Mock Data Generator
+        // 5. Mock Data Generator
         function generateMockData() {
             dashboardData.client = [
                 { name: "Acme Corp", usage: 95, phone: "1234567890" },
                 { name: "TechFlow Inc", usage: 85, phone: "0987654321" },
                 { name: "Global Med", usage: 92, phone: "1112223333" },
-                { name: "Local Bakery", usage: 40, phone: "4445556666" }
+                { name: "Local Bakery", usage: 56, phone: "4445556666" }
             ];
             dashboardData.attendance = [
                 { date: "2026-10-01", present: 45, absent: 5 },
                 { date: "2026-10-02", present: 48, absent: 2 },
                 { date: "2026-10-03", present: 42, absent: 8 }
             ];
-            dashboardData.income = [
-                { source: "Service Contracts", amount: 12000 },
-                { source: "Software Sales", amount: 8500 },
-                { source: "Consulting", amount: 3000 }
-            ];
-            dashboardData.expense = [
-                { category: "Office Rent", amount: 4000 },
-                { category: "Server Hosting", amount: 1200 },
-                { category: "Marketing", amount: 2500 }
-            ];
 
-            ['client', 'attendance', 'income', 'expense'].forEach(cat => {
+            ['client', 'attendance'].forEach(cat => {
                 let badge = document.getElementById(`status-${cat}`);
                 badge.textContent = "Mock Data Active";
                 badge.classList.add("active");
@@ -292,7 +275,7 @@
             updateDashboardUI();
         }
 
-        // 5. Update UI (Metrics & Tables)
+        // 6. Update UI (Metrics & Tables)
         function updateDashboardUI() {
             updateMetrics();
             renderTables();
@@ -316,25 +299,6 @@
             const attendancePercent = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(1) : 0;
             document.getElementById('metric-attendance').innerText = totalPresent;
             document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% of total working days`;
-
-            // -- Income Metrics (Current & Monthly Prediction)
-            let totalIncome = dashboardData.income.reduce((sum, item) => sum + item.amount, 0);
-            
-            // Prediction Logic: (Total Income / days passed in month) * total days in month
-            const today = new Date();
-            const currentDay = today.getDate();
-            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-            const predictedIncome = totalIncome > 0 ? (totalIncome / currentDay) * daysInMonth : 0;
-
-            document.getElementById('metric-income').innerText = `$${totalIncome.toLocaleString()}`;
-            document.getElementById('metric-income-sub').innerText = `Predicted Monthly: $${predictedIncome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-            // -- Expense Metrics (% based on income)
-            let totalExpense = dashboardData.expense.reduce((sum, item) => sum + item.amount, 0);
-            const expensePercent = totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(1) : 0;
-
-            document.getElementById('metric-expense').innerText = `$${totalExpense.toLocaleString()}`;
-            document.getElementById('metric-expense-sub').innerText = `${expensePercent}% of Total Income`;
         }
 
         function renderTables() {
@@ -362,25 +326,26 @@
                 html += `</table>`;
                 document.getElementById('container-attendance').innerHTML = html;
             }
+        }
 
-            // Income Table
-            if (dashboardData.income.length > 0) {
-                let html = `<table><tr><th>Income Source</th><th>Amount</th></tr>`;
-                dashboardData.income.forEach(i => {
-                    html += `<tr><td>${i.source}</td><td>$${i.amount.toLocaleString()}</td></tr>`;
-                });
-                html += `</table>`;
-                document.getElementById('container-income').innerHTML = html;
+        // 7. Bulk Auto-Send WhatsApp Logic
+        function autoSendWhatsApp() {
+            const targetClients = dashboardData.client.filter(c => c.usage > 90 && c.phone && c.phone !== "N/A");
+
+            if (targetClients.length === 0) {
+                alert("No clients found with over 90% usage or valid phone numbers.");
+                return;
             }
 
-            // Expense Table
-            if (dashboardData.expense.length > 0) {
-                let html = `<table><tr><th>Expense Category</th><th>Amount</th></tr>`;
-                dashboardData.expense.forEach(e => {
-                    html += `<tr><td>${e.category}</td><td>$${e.amount.toLocaleString()}</td></tr>`;
+            const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them. \n(Note: Ensure your browser pop-up blocker is disabled for this site).`);
+
+            if (confirmSend) {
+                targetClients.forEach(c => {
+                    let message = `Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`;
+                    let encodedMessage = encodeURIComponent(message);
+                    let waUrl = `https://wa.me/${c.phone}?text=${encodedMessage}`;
+                    window.open(waUrl, '_blank');
                 });
-                html += `</table>`;
-                document.getElementById('container-expense').innerHTML = html;
             }
         }
     </script>
