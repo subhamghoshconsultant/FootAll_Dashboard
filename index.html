@@ -4,350 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard with Dynamic Excel Data Upload</title>
+
     <!-- SheetJS Library to parse Excel (.xlsx / .xls) files directly in browser -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
-        h1, h2, h3 { margin-top: 0; }
-        
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
         /* Upload Panel Styles */
-        .upload-section { background-color: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 24px; }
-        .upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
-        .upload-card { background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; transition: border-color 0.2s ease; }
-        .upload-card:hover { border-color: #2563eb; }
-        .upload-card label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
-        .upload-card input[type="file"] { width: 100%; font-size: 0.85rem; }
-        
-        .status-badge { display: inline-block; margin-top: 8px; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #e2e8f0; color: #64748b; }
-        .status-badge.active { background-color: #dcfce7; color: #15803d; }
-        
+        .upload-section {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .upload-card {
+            background-color: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .upload-card:hover {
+            border-color: #2563eb;
+        }
+
+        .upload-card label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+
+        .upload-card input[type="file"] {
+            width: 100%;
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        .status-badge.active {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
         /* Mock Data Button */
-        .mock-section { text-align: center; margin-bottom: 24px; }
-        .btn-mock { background-color: #1e293b; color: #fff; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
-        .btn-mock:hover { background-color: #334155; }
-        
+        .mock-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .btn-mock {
+            background-color: #1e293b;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-mock:hover {
+            background-color: #334155;
+        }
+
         /* Metric Cards */
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .metric-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-left: 4px solid #2563eb; }
-        .metric-card h3 { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; }
-        .metric-card .value { font-size: 1.5rem; font-weight: bold; color: #0f172a; }
-        .metric-card .sub-value { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
-
-        /* Dashboard Data Tables & FB Cards */
-        .dashboard-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .table-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
-        .table-container { overflow-x: auto; max-height: 300px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
-        th { background-color: #f1f5f9; position: sticky; top: 0; }
-
-        /* WhatsApp Buttons */
-        .btn-wa { background-color: #25D366; color: white; padding: 4px 10px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; }
-        .btn-wa:hover { background-color: #128C7E; }
-        .btn-wa-bulk { background-color: #25D366; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-wa-bulk:hover { background-color: #128C7E; }
-
-        /* FB Card Styles */
-        .fb-post { background: #f8fafc; border-left: 4px solid #1877F2; padding: 15px; border-radius: 6px; margin-top: 15px; }
-        .fb-post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .fb-post-title { font-weight: 600; color: #1e293b; font-size: 0.95rem; }
-        .fb-post-date { font-size: 0.75rem; color: #64748b; }
-        .fb-post-body { font-size: 0.85rem; color: #475569; line-height: 1.5; margin: 0; }
-        .fb-tags { margin-top: 10px; }
-        .fb-tag { display: inline-block; background-color: #e2e8f0; color: #475569; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; margin-right: 5px; }
-    </style>
-</head>
-<body>
-
-    <h1>Business Dashboard</h1>
-
-    <!-- 1. EXCEL UPLOAD SECTION -->
-    <div class="upload-section">
-        <h2>Upload Latest Excel Documents</h2>
-        <p style="color: #64748b; font-size: 0.9rem;">Upload files for specific categories. Unuploaded data will remain intact. Any file name is accepted.</p>
-        
-        <div class="upload-grid" style="grid-template-columns: repeat(2, 1fr);">
-            <div class="upload-card">
-                <label for="uploadClient">1. Client Details</label>
-                <input type="file" id="uploadClient" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'client')">
-                <span id="status-client" class="status-badge">Default Data</span>
-            </div>
-            <div class="upload-card">
-                <label for="uploadAttendance">2. Attendance Details</label>
-                <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
-                <span id="status-attendance" class="status-badge">Default Data</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- MOCK DATA GENERATOR -->
-    <div class="mock-section">
-        <button class="btn-mock" onclick="generateMockData()">⚙️ Generate Mock Data for Testing</button>
-    </div>
-
-    <!-- 2. SUMMARY METRICS PANEL -->
-    <div class="metrics-grid">
-        <div class="metric-card" style="border-left-color: #3b82f6;">
-            <h3>High Usage Clients (>90%)</h3>
-            <div class="value" id="metric-clients">0</div>
-            <div class="sub-value" id="metric-clients-sub">Out of 0 total clients</div>
-        </div>
-        <div class="metric-card" style="border-left-color: #10b981;">
-            <h3>Total Days Present</h3>
-            <div class="value" id="metric-attendance">0</div>
-            <div class="sub-value" id="metric-attendance-sub">0% of total working days</div>
-        </div>
-        <div class="metric-card" style="border-left-color: #1877F2;">
-            <h3>Latest FB Ad Run</h3>
-            <div class="value">Sep 18</div>
-            <div class="sub-value">Morning Skincare Campaign</div>
-        </div>
-        <div class="metric-card" style="border-left-color: #f59e0b;">
-            <h3>Social Inquiries</h3>
-            <div class="value">+91 98314 28224</div>
-            <div class="sub-value">Active WhatsApp Line</div>
-        </div>
-    </div>
-
-    <!-- 3. DASHBOARD DATA DISPLAY -->
-    <div class="dashboard-tables">
-        
-        <!-- Client Table -->
-        <div class="table-card" style="grid-column: span 1;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin: 0;">Client Details (Usage & Comms)</h3>
-                <button class="btn-wa-bulk" onclick="autoSendWhatsApp()">📲 Auto-Send to >90%</button>
-            </div>
-            <div class="table-container" id="container-client"><em>No client data loaded.</em></div>
-        </div>
-
-        <!-- Attendance Table -->
-        <div class="table-card" style="grid-column: span 1;">
-            <h3>Attendance Details</h3>
-            <div class="table-container" id="container-attendance"><em>No attendance data loaded.</em></div>
-        </div>
-
-        <!-- Latest Instagram Campaigns -->
-        <div class="table-card" style="grid-column: 1 / -1;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                <h3 style="margin: 0;">Latest Campaigns (FootAll Instagram Page)</h3>
-                <a href="https://www.https://www.instagram.com/footall_ft/" target="_blank" style="font-size: 0.85rem; color: #1877F2; text-decoration: none; font-weight: bold;">View Live Page ↗</a>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
-                
-                <!-- Ad 1 -->
-                <div class="fb-post">
-                    <div class="fb-post-header">
-                        <span class="fb-post-title">Morning Skincare Routine</span>
-                        <span class="fb-post-date">Sep 18, 2026</span>
-                    </div>
-                    <p class="fb-post-body">An effective morning skincare routine is all about protection and prevention. While nighttime routines focus on repair, your morning steps shield your skin from environmental aggressors like UV rays, pollution, and free radicals.</p>
-                    <div class="fb-tags">
-                        <span class="fb-tag">#skincare</span>
-                        <span class="fb-tag">#footall_ft</span>
-                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">Informational Ad</span>
-                    </div>
-                </div>
-
-                <!-- Ad 2 -->
-                <div class="fb-post">
-                    <div class="fb-post-header">
-                        <span class="fb-post-title">Ice vs. Heat for Foot Pain</span>
-                        <span class="fb-post-date">Sep 13, 2026</span>
-                    </div>
-                    <p class="fb-post-body">Ice vs. heat for foot pain is a common question because both can feel helpful, but they work in different situations. As a general rule, ice is usually better for recent foot pain, swelling, sharp pain, or a new injury. Heat is usually better for stiffness, tightness, chronic soreness, or tired feet.</p>
-                    <div class="fb-tags">
-                        <span class="fb-tag">#footpain</span>
-                        <span class="fb-tag">#footspa</span>
-                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">16 Likes</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Central State Store
-        let dashboardData = { client: [], attendance: [] };
-
-        // 1. File Upload Handler
-        function handleFileUpload(event, category) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-                if (!rawRows || rawRows.length === 0) {
-                    alert("The uploaded Excel file appears to be empty.");
-                    return;
-                }
-
-                dashboardData[category] = normalizeRows(rawRows, category);
-                
-                // Update Badge
-                let badge = document.getElementById(`status-${category}`);
-                badge.textContent = "Data Loaded";
-                badge.classList.add("active");
-
-                updateDashboardUI();
-            };
-            reader.readAsArrayBuffer(file);
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        // 2. Loose Field Matcher
-        function getFieldValue(row, possibleAliases) {
-            const keys = Object.keys(row);
-            for (const alias of possibleAliases) {
-                const matchedKey = keys.find((k) => k.trim().toLowerCase() === alias.toLowerCase());
-                if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== "") {
-                    return row[matchedKey];
-                }
-            }
-            return "N/A";
+        .metric-card {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border-left: 4px solid #2563eb;
         }
 
-        // 3. Robust Number & Percentage Parser
-        function parseNumeric(val, isPercentage = false) {
-            if (val === undefined || val === null || val === "" || val === "N/A") return 0;
-            
-            let num = 0;
-            if (typeof val === 'string') {
-                num = parseFloat(val.replace(/[^0-9.-]/g, ''));
-            } else if (typeof val === 'number') {
-                num = val;
-                if (isPercentage && num > 0 && num <= 1) {
-                    num = num * 100;
-                }
-            }
-            return isNaN(num) ? 0 : num;
+        .metric-card h3 {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 8px;
         }
 
-        // 4. Category Row Normalizer
-        function normalizeRows(rows, category) {
-            return rows.map((row) => {
-                switch (category) {
-                    case "client":
-                        return {
-                            name: getFieldValue(row, ["client name", "client", "name", "customer"]),
-                            usage: parseNumeric(getFieldValue(row, ["usage", "usage %", "probability", "package usage"]), true),
-                            phone: getFieldValue(row, ["phone", "contact", "mobile", "whatsapp"])
-                        };
-                    case "attendance":
-                        return {
-                            date: getFieldValue(row, ["date", "day", "attendance date"]),
-                            present: parseNumeric(getFieldValue(row, ["present", "present count", "attended", "p"])),
-                            absent: parseNumeric(getFieldValue(row, ["absent", "absent count", "a", "leave"]))
-                        };
-                    default:
-                        return row;
-                }
-            });
-        }
-
-        // 5. Mock Data Generator
-        function generateMockData() {
-            dashboardData.client = [
-                { name: "Acme Corp", usage: 95, phone: "1234567890" },
-                { name: "TechFlow Inc", usage: 85, phone: "0987654321" },
-                { name: "Global Med", usage: 92, phone: "1112223333" },
-                { name: "Local Bakery", usage: 56, phone: "4445556666" }
-            ];
-            dashboardData.attendance = [
-                { date: "2026-10-01", present: 45, absent: 5 },
-                { date: "2026-10-02", present: 48, absent: 2 },
-                { date: "2026-10-03", present: 42, absent: 8 }
-            ];
-
-            ['client', 'attendance'].forEach(cat => {
-                let badge = document.getElementById(`status-${cat}`);
-                badge.textContent = "Mock Data Active";
-                badge.classList.add("active");
-            });
-
-            updateDashboardUI();
-        }
-
-        // 6. Update UI (Metrics & Tables)
-        function updateDashboardUI() {
-            updateMetrics();
-            renderTables();
-        }
-
-        function updateMetrics() {
-            // -- Client Metrics (Usage > 90%)
-            const totalClients = dashboardData.client.length;
-            const highUsageClients = dashboardData.client.filter(c => c.usage > 90).length;
-            document.getElementById('metric-clients').innerText = highUsageClients;
-            document.getElementById('metric-clients-sub').innerText = `Out of ${totalClients} total clients`;
-
-            // -- Attendance Metrics
-            let totalPresent = 0;
-            let totalAbsent = 0;
-            dashboardData.attendance.forEach(a => {
-                totalPresent += a.present;
-                totalAbsent += a.absent;
-            });
-            const totalDays = totalPresent + totalAbsent;
-            const attendancePercent = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(1) : 0;
-            document.getElementById('metric-attendance').innerText = totalPresent;
-            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% of total working days`;
-        }
-
-        function renderTables() {
-            // Client Table
-            if (dashboardData.client.length > 0) {
-                let html = `<table><tr><th>Client Name</th><th>Usage %</th><th>Action</th></tr>`;
-                dashboardData.client.forEach(c => {
-                    let actionHtml = "N/A";
-                    if (c.usage > 90 && c.phone !== "N/A") {
-                        let msg = encodeURIComponent(`Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`);
-                        actionHtml = `<a href="https://wa.me/${c.phone}?text=${msg}" target="_blank" class="btn-wa">Send WhatsApp</a>`;
-                    }
-                    html += `<tr><td>${c.name}</td><td>${c.usage}%</td><td>${actionHtml}</td></tr>`;
-                });
-                html += `</table>`;
-                document.getElementById('container-client').innerHTML = html;
-            }
-
-            // Attendance Table
-            if (dashboardData.attendance.length > 0) {
-                let html = `<table><tr><th>Date</th><th>Present</th><th>Absent</th></tr>`;
-                dashboardData.attendance.forEach(a => {
-                    html += `<tr><td>${a.date}</td><td>${a.present}</td><td>${a.absent}</td></tr>`;
-                });
-                html += `</table>`;
-                document.getElementById('container-attendance').innerHTML = html;
-            }
-        }
-
-        // 7. Bulk Auto-Send WhatsApp Logic
-        function autoSendWhatsApp() {
-            const targetClients = dashboardData.client.filter(c => c.usage > 90 && c.phone && c.phone !== "N/A");
-
-            if (targetClients.length === 0) {
-                alert("No clients found with over 90% usage or valid phone numbers.");
-                return;
-            }
-
-            const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them. \n(Note: Ensure your browser pop-up blocker is disabled for this site).`);
-
-            if (confirmSend) {
-                targetClients.forEach(c => {
-                    let message = `Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`;
-                    let encodedMessage = encodeURIComponent(message);
-                    let waUrl = `https://wa.me/${c.phone}?text=${encodedMessage}`;
-                    window.open(waUrl, '_blank');
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+        .metric-card .value {
+            font-size: 1.5rem;
+            font-weight:
