@@ -269,7 +269,7 @@
             </div>
             
             <div class="upload-card">
-                <label for="uploadAttendance">2. Attendance Details</label>
+                <label for="uploadAttendance">2. Employee Attendance</label>
                 <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
                 <span id="status-attendance" class="status-badge">Default Data</span>
             </div>
@@ -292,7 +292,7 @@
         <div class="metric-card" style="border-left-color: #10b981;">
             <h3>Total Days Present</h3>
             <div class="value" id="metric-attendance">0</div>
-            <div class="sub-value" id="metric-attendance-sub">0% of total working days</div>
+            <div class="sub-value" id="metric-attendance-sub">0% Month-to-Date</div>
         </div>
 
         <div class="metric-card" style="border-left-color: #E1306C;">
@@ -322,7 +322,7 @@
 
         <!-- Attendance Table -->
         <div class="table-card" style="grid-column: span 1;">
-            <h3>Attendance Details</h3>
+            <h3>Employee Attendance Details</h3>
             <div class="table-container" id="container-attendance"><em>No attendance data loaded.</em></div>
         </div>
 
@@ -330,7 +330,6 @@
         <div class="table-card" style="grid-column: 1 / -1;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
                 <h3 style="margin: 0;">Latest Campaigns (FootAll Instagram Page)</h3>
-                <!-- Fixed slightly malformed URL in your original code to a clean IG link -->
                 <a href="https://www.instagram.com/footall_ft/" target="_blank" style="font-size: 0.85rem; color: #E1306C; text-decoration: none; font-weight: bold;">View Live Page ↗</a>
             </div>
             
@@ -443,9 +442,8 @@
                         };
                     case "attendance":
                         return {
-                            date: getFieldValue(row, ["date", "day", "attendance date"]),
-                            present: parseNumeric(getFieldValue(row, ["present", "present count", "attended", "p"])),
-                            absent: parseNumeric(getFieldValue(row, ["absent", "absent count", "a", "leave"]))
+                            name: getFieldValue(row, ["employee name", "employee", "name", "staff", "team member"]),
+                            present: parseNumeric(getFieldValue(row, ["present", "days present", "attended", "p", "total present"]))
                         };
                     default:
                         return row;
@@ -462,10 +460,14 @@
                 { name: "Local Bakery", usage: 56, phone: "4445556666" }
             ];
 
+            const today = new Date();
+            const currentDay = today.getDate(); // Will use current day to make mock data realistic
+
             dashboardData.attendance = [
-                { date: "2026-10-01", present: 45, absent: 5 },
-                { date: "2026-10-02", present: 48, absent: 2 },
-                { date: "2026-10-03", present: 42, absent: 8 }
+                { name: "John Doe", present: currentDay > 2 ? currentDay - 1 : currentDay },
+                { name: "Jane Smith", present: currentDay },
+                { name: "Rahul Verma", present: currentDay > 3 ? currentDay - 2 : currentDay },
+                { name: "Priya Sharma", present: currentDay }
             ];
 
             ['client', 'attendance'].forEach(cat => {
@@ -490,18 +492,19 @@
             document.getElementById('metric-clients').innerText = highUsageClients;
             document.getElementById('metric-clients-sub').innerText = `Out of ${totalClients} total clients`;
 
-            // -- Attendance Metrics
+            // -- Attendance Metrics (Month-to-Date calculation)
             let totalPresent = 0;
-            let totalAbsent = 0;
             dashboardData.attendance.forEach(a => {
                 totalPresent += a.present;
-                totalAbsent += a.absent;
             });
-            const totalDays = totalPresent + totalAbsent;
-            const attendancePercent = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(1) : 0;
+            
+            const today = new Date();
+            const daysInMonthSoFar = today.getDate();
+            const totalPossible = dashboardData.attendance.length * daysInMonthSoFar;
+            const attendancePercent = totalPossible > 0 ? ((totalPresent / totalPossible) * 100).toFixed(1) : 0;
             
             document.getElementById('metric-attendance').innerText = totalPresent;
-            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% of total working days`;
+            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% (Month-to-Date)`;
         }
 
         function renderTables() {
@@ -522,9 +525,16 @@
 
             // Attendance Table
             if (dashboardData.attendance.length > 0) {
-                let html = `<table><tr><th>Date</th><th>Present</th><th>Absent</th></tr>`;
+                // Dynamically generate the header date based on the current date
+                const today = new Date();
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const currentMonth = monthNames[today.getMonth()];
+                const currentDay = today.getDate();
+                const dateRangeStr = `1st ${currentMonth} - ${currentDay} ${currentMonth}`;
+
+                let html = `<table><tr><th>Employee Name</th><th>Days Present (${dateRangeStr})</th></tr>`;
                 dashboardData.attendance.forEach(a => {
-                    html += `<tr><td>${a.date}</td><td>${a.present}</td><td>${a.absent}</td></tr>`;
+                    html += `<tr><td>${a.name}</td><td>${a.present}</td></tr>`;
                 });
                 html += `</table>`;
                 document.getElementById('container-attendance').innerHTML = html;
