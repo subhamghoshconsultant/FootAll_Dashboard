@@ -18,14 +18,15 @@
         .upload-card:hover { border-color: #2563eb; }
         .upload-card label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
         .upload-card input[type="file"] { width: 100%; font-size: 0.85rem; }
+        
         .status-badge { display: inline-block; margin-top: 8px; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #e2e8f0; color: #64748b; }
         .status-badge.active { background-color: #dcfce7; color: #15803d; }
-
+        
         /* Mock Data Button */
         .mock-section { text-align: center; margin-bottom: 24px; }
         .btn-mock { background-color: #1e293b; color: #fff; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
         .btn-mock:hover { background-color: #334155; }
-
+        
         /* Metric Cards */
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .metric-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-left: 4px solid #2563eb; }
@@ -33,7 +34,7 @@
         .metric-card .value { font-size: 1.5rem; font-weight: bold; color: #0f172a; }
         .metric-card .sub-value { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
 
-        /* Dashboard Data Tables */
+        /* Dashboard Data Tables & FB Cards */
         .dashboard-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
         .table-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
         .table-container { overflow-x: auto; max-height: 300px; margin-top: 10px; }
@@ -47,17 +48,14 @@
         .btn-wa-bulk { background-color: #25D366; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-wa-bulk:hover { background-color: #128C7E; }
 
-        /* Instagram Card Styles */
-        .ig-post { background: #f8fafc; border-left: 4px solid #E1306C; padding: 15px; border-radius: 6px; margin-top: 15px; }
-        .ig-post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .ig-post-title { font-weight: 600; color: #1e293b; font-size: 0.95rem; }
-        .ig-post-date { font-size: 0.75rem; color: #64748b; }
-        .ig-post-body { font-size: 0.85rem; color: #475569; line-height: 1.5; margin: 0; }
-        .ig-tags { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .ig-tag-group { display: flex; gap: 5px; flex-wrap: wrap; }
-        .ig-tag { display: inline-block; background-color: #e2e8f0; color: #475569; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; }
-        .ig-link { font-size: 0.75rem; color: #E1306C; text-decoration: none; font-weight: bold; }
-        .ig-link:hover { text-decoration: underline; }
+        /* FB Card Styles */
+        .fb-post { background: #f8fafc; border-left: 4px solid #1877F2; padding: 15px; border-radius: 6px; margin-top: 15px; }
+        .fb-post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .fb-post-title { font-weight: 600; color: #1e293b; font-size: 0.95rem; }
+        .fb-post-date { font-size: 0.75rem; color: #64748b; }
+        .fb-post-body { font-size: 0.85rem; color: #475569; line-height: 1.5; margin: 0; }
+        .fb-tags { margin-top: 10px; }
+        .fb-tag { display: inline-block; background-color: #e2e8f0; color: #475569; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -68,21 +66,17 @@
     <div class="upload-section">
         <h2>Upload Latest Excel Documents</h2>
         <p style="color: #64748b; font-size: 0.9rem;">Upload files for specific categories. Unuploaded data will remain intact. Any file name is accepted.</p>
-        <div class="upload-grid" style="grid-template-columns: repeat(3, 1fr);">
+        
+        <div class="upload-grid" style="grid-template-columns: repeat(2, 1fr);">
             <div class="upload-card">
                 <label for="uploadClient">1. Client Details</label>
                 <input type="file" id="uploadClient" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'client')">
                 <span id="status-client" class="status-badge">Default Data</span>
             </div>
             <div class="upload-card">
-                <label for="uploadAttendance">2. Employee Attendance</label>
+                <label for="uploadAttendance">2. Attendance Details</label>
                 <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
                 <span id="status-attendance" class="status-badge">Default Data</span>
-            </div>
-            <div class="upload-card">
-                <label for="uploadReels">3. Instagram Reels Data</label>
-                <input type="file" id="uploadReels" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'reels')">
-                <span id="status-reels" class="status-badge">Default Data</span>
             </div>
         </div>
     </div>
@@ -102,12 +96,12 @@
         <div class="metric-card" style="border-left-color: #10b981;">
             <h3>Total Days Present</h3>
             <div class="value" id="metric-attendance">0</div>
-            <div class="sub-value" id="metric-attendance-sub">0% Month-to-Date</div>
+            <div class="sub-value" id="metric-attendance-sub">0% of total working days</div>
         </div>
-        <div class="metric-card" style="border-left-color: #E1306C;">
-            <h3>Total Reel Engagement</h3>
-            <div class="value" id="metric-reels">0</div>
-            <div class="sub-value" id="metric-reels-sub">Total Likes across active reels</div>
+        <div class="metric-card" style="border-left-color: #1877F2;">
+            <h3>Latest FB Ad Run</h3>
+            <div class="value">Sep 18</div>
+            <div class="sub-value">Morning Skincare Campaign</div>
         </div>
         <div class="metric-card" style="border-left-color: #f59e0b;">
             <h3>Social Inquiries</h3>
@@ -130,38 +124,53 @@
 
         <!-- Attendance Table -->
         <div class="table-card" style="grid-column: span 1;">
-            <h3>Employee Attendance Details</h3>
+            <h3>Attendance Details</h3>
             <div class="table-container" id="container-attendance"><em>No attendance data loaded.</em></div>
         </div>
 
-        <!-- Latest Instagram Campaigns / Reels -->
+        <!-- Latest Instagram Campaigns -->
         <div class="table-card" style="grid-column: 1 / -1;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                <h3 style="margin: 0;">Latest Campaigns (FootAll Instagram Reels & Posts)</h3>
-                <a href="https://www.instagram.com/footall_ft/" target="_blank" style="font-size: 0.85rem; color: #E1306C; text-decoration: none; font-weight: bold;">View Live Page ↗</a>
+                <h3 style="margin: 0;">Latest Campaigns (FootAll Instagram Page)</h3>
+                <a href="https://www.https://www.instagram.com/footall_ft/" target="_blank" style="font-size: 0.85rem; color: #1877F2; text-decoration: none; font-weight: bold;">View Live Page ↗</a>
             </div>
-            <div id="container-reels" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;">
-                <!-- Default static cards will load here -->
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                
+                <!-- Ad 1 -->
+                <div class="fb-post">
+                    <div class="fb-post-header">
+                        <span class="fb-post-title">Morning Skincare Routine</span>
+                        <span class="fb-post-date">Sep 18, 2026</span>
+                    </div>
+                    <p class="fb-post-body">An effective morning skincare routine is all about protection and prevention. While nighttime routines focus on repair, your morning steps shield your skin from environmental aggressors like UV rays, pollution, and free radicals.</p>
+                    <div class="fb-tags">
+                        <span class="fb-tag">#skincare</span>
+                        <span class="fb-tag">#footall_ft</span>
+                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">Informational Ad</span>
+                    </div>
+                </div>
+
+                <!-- Ad 2 -->
+                <div class="fb-post">
+                    <div class="fb-post-header">
+                        <span class="fb-post-title">Ice vs. Heat for Foot Pain</span>
+                        <span class="fb-post-date">Sep 13, 2026</span>
+                    </div>
+                    <p class="fb-post-body">Ice vs. heat for foot pain is a common question because both can feel helpful, but they work in different situations. As a general rule, ice is usually better for recent foot pain, swelling, sharp pain, or a new injury. Heat is usually better for stiffness, tightness, chronic soreness, or tired feet.</p>
+                    <div class="fb-tags">
+                        <span class="fb-tag">#footpain</span>
+                        <span class="fb-tag">#footspa</span>
+                        <span class="fb-tag" style="background-color: #dcfce7; color: #15803d;">16 Likes</span>
+                    </div>
+                </div>
             </div>
         </div>
-
     </div>
 
     <script>
         // Central State Store
-        let dashboardData = {
-            client: [],
-            attendance: [],
-            reels: [
-                { title: "Morning Skincare Routine", date: "Sep 18, 2026", body: "An effective morning skincare routine is all about protection and prevention. While nighttime routines focus on repair, your morning steps shield your skin from environmental aggressors like UV rays, pollution, and free radicals.", likes: 24, url: "https://www.instagram.com/footall_ft/" },
-                { title: "Ice vs. Heat for Foot Pain", date: "Sep 13, 2026", body: "Ice vs. heat for foot pain is a common question because both can feel helpful, but they work in different situations. As a general rule, ice is usually better for recent foot pain, swelling, sharp pain, or a new injury.", likes: 16, url: "https://www.instagram.com/footall_ft/" }
-            ]
-        };
-
-        // Initialize default view on load
-        window.onload = function() {
-            updateDashboardUI();
-        };
+        let dashboardData = { client: [], attendance: [] };
 
         // 1. File Upload Handler
         function handleFileUpload(event, category) {
@@ -182,7 +191,7 @@
                 }
 
                 dashboardData[category] = normalizeRows(rawRows, category);
-
+                
                 // Update Badge
                 let badge = document.getElementById(`status-${category}`);
                 badge.textContent = "Data Loaded";
@@ -208,6 +217,7 @@
         // 3. Robust Number & Percentage Parser
         function parseNumeric(val, isPercentage = false) {
             if (val === undefined || val === null || val === "" || val === "N/A") return 0;
+            
             let num = 0;
             if (typeof val === 'string') {
                 num = parseFloat(val.replace(/[^0-9.-]/g, ''));
@@ -232,16 +242,9 @@
                         };
                     case "attendance":
                         return {
-                            name: getFieldValue(row, ["employee name", "employee", "name", "staff", "team member"]),
-                            present: parseNumeric(getFieldValue(row, ["present", "days present", "attended", "p", "total present"]))
-                        };
-                    case "reels":
-                        return {
-                            title: getFieldValue(row, ["title", "reel title", "caption title", "name"]),
-                            date: getFieldValue(row, ["date", "post date", "published"]),
-                            body: getFieldValue(row, ["body", "caption", "description", "content"]),
-                            likes: parseNumeric(getFieldValue(row, ["likes", "like count", "engagement"])),
-                            url: getFieldValue(row, ["url", "reel url", "link", "post url"])
+                            date: getFieldValue(row, ["date", "day", "attendance date"]),
+                            present: parseNumeric(getFieldValue(row, ["present", "present count", "attended", "p"])),
+                            absent: parseNumeric(getFieldValue(row, ["absent", "absent count", "a", "leave"]))
                         };
                     default:
                         return row;
@@ -257,23 +260,13 @@
                 { name: "Global Med", usage: 92, phone: "1112223333" },
                 { name: "Local Bakery", usage: 56, phone: "4445556666" }
             ];
-
-            const today = new Date();
-            const currentDay = today.getDate();
             dashboardData.attendance = [
-                { name: "John Doe", present: currentDay > 2 ? currentDay - 1 : currentDay },
-                { name: "Jane Smith", present: currentDay },
-                { name: "Rahul Verma", present: currentDay > 3 ? currentDay - 2 : currentDay },
-                { name: "Priya Sharma", present: currentDay }
+                { date: "2026-10-01", present: 45, absent: 5 },
+                { date: "2026-10-02", present: 48, absent: 2 },
+                { date: "2026-10-03", present: 42, absent: 8 }
             ];
 
-            dashboardData.reels = [
-                { title: "Morning Skincare Routine", date: "Sep 18, 2026", body: "An effective morning skincare routine is all about protection and prevention. While nighttime routines focus on repair, your morning steps shield your skin from environmental aggressors.", likes: 24, url: "https://www.instagram.com/footall_ft/" },
-                { title: "Ice vs. Heat for Foot Pain", date: "Sep 13, 2026", body: "Ice vs. heat for foot pain is a common question because both can feel helpful, but they work in different situations. As a general rule, ice is usually better for recent foot pain.", likes: 38, url: "https://www.instagram.com/footall_ft/" },
-                { title: "Post-Workout Recovery Tips", date: "Oct 02, 2026", body: "Quick stretches and hydration habits to prevent cramping and maintain joint mobility after heavy training sessions.", likes: 52, url: "https://www.instagram.com/footall_ft/" }
-            ];
-
-            ['client', 'attendance', 'reels'].forEach(cat => {
+            ['client', 'attendance'].forEach(cat => {
                 let badge = document.getElementById(`status-${cat}`);
                 badge.textContent = "Mock Data Active";
                 badge.classList.add("active");
@@ -282,15 +275,14 @@
             updateDashboardUI();
         }
 
-        // 6. Update UI (Metrics & Tables & Reels)
+        // 6. Update UI (Metrics & Tables)
         function updateDashboardUI() {
             updateMetrics();
             renderTables();
-            renderReels();
         }
 
         function updateMetrics() {
-            // -- Client Metrics (>90%)
+            // -- Client Metrics (Usage > 90%)
             const totalClients = dashboardData.client.length;
             const highUsageClients = dashboardData.client.filter(c => c.usage > 90).length;
             document.getElementById('metric-clients').innerText = highUsageClients;
@@ -298,19 +290,15 @@
 
             // -- Attendance Metrics
             let totalPresent = 0;
-            dashboardData.attendance.forEach(a => { totalPresent += a.present; });
-            const today = new Date();
-            const daysInMonthSoFar = today.getDate();
-            const totalPossible = dashboardData.attendance.length * daysInMonthSoFar;
-            const attendancePercent = totalPossible > 0 ? ((totalPresent / totalPossible) * 100).toFixed(1) : 0;
+            let totalAbsent = 0;
+            dashboardData.attendance.forEach(a => {
+                totalPresent += a.present;
+                totalAbsent += a.absent;
+            });
+            const totalDays = totalPresent + totalAbsent;
+            const attendancePercent = totalDays > 0 ? ((totalPresent / totalDays) * 100).toFixed(1) : 0;
             document.getElementById('metric-attendance').innerText = totalPresent;
-            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% (Month-to-Date)`;
-
-            // -- Reel Metrics
-            let totalLikes = 0;
-            dashboardData.reels.forEach(r => { totalLikes += r.likes; });
-            document.getElementById('metric-reels').innerText = totalLikes;
-            document.getElementById('metric-reels-sub',).innerText = `Across ${dashboardData.reels.length} tracked reels`;
+            document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% of total working days`;
         }
 
         function renderTables() {
@@ -331,55 +319,26 @@
 
             // Attendance Table
             if (dashboardData.attendance.length > 0) {
-                const today = new Date();
-                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                const currentMonth = monthNames[today.getMonth()];
-                const currentDay = today.getDate();
-                const dateRangeStr = `1st ${currentMonth} - ${currentDay} ${currentMonth}`;
-
-                let html = `<table><tr><th>Employee Name</th><th>Days Present (${dateRangeStr})</th></tr>`;
+                let html = `<table><tr><th>Date</th><th>Present</th><th>Absent</th></tr>`;
                 dashboardData.attendance.forEach(a => {
-                    html += `<tr><td>${a.name}</td><td>${a.present}</td></tr>`;
+                    html += `<tr><td>${a.date}</td><td>${a.present}</td><td>${a.absent}</td></tr>`;
                 });
                 html += `</table>`;
                 document.getElementById('container-attendance').innerHTML = html;
             }
         }
 
-        function renderReels() {
-            if (dashboardData.reels.length > 0) {
-                let html = "";
-                dashboardData.reels.forEach(r => {
-                    let reelUrl = (r.url && r.url !== "N/A") ? r.url : "https://www.instagram.com/footall_ft/";
-                    html += `
-                        <div class="ig-post">
-                            <div class="ig-post-header">
-                                <span class="ig-post-title">${r.title}</span>
-                                <span class="ig-post-date">${r.date}</span>
-                            </div>
-                            <p class="ig-post-body">${r.body}</p>
-                            <div class="ig-tags">
-                                <div class="ig-tag-group">
-                                    <span class="ig-tag">#footall_ft</span>
-                                    <span class="ig-tag" style="background-color: #fce7f3; color: #be185d;">❤️ ${r.likes} Likes</span>
-                                </div>
-                                <a href="${reelUrl}" target="_blank" class="ig-link">View Reel ↗</a>
-                            </div>
-                        </div>
-                    `;
-                });
-                document.getElementById('container-reels').innerHTML = html;
-            }
-        }
-
         // 7. Bulk Auto-Send WhatsApp Logic
         function autoSendWhatsApp() {
             const targetClients = dashboardData.client.filter(c => c.usage > 90 && c.phone && c.phone !== "N/A");
+
             if (targetClients.length === 0) {
                 alert("No clients found with over 90% usage or valid phone numbers.");
                 return;
             }
-            const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them.`);
+
+            const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them. \n(Note: Ensure your browser pop-up blocker is disabled for this site).`);
+
             if (confirmSend) {
                 targetClients.forEach(c => {
                     let message = `Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`;
