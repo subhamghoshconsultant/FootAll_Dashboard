@@ -13,20 +13,8 @@
         
         /* Upload Panel Styles */
         .upload-section { background-color: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 24px; }
-        .upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
-        .upload-card { 
-    background-color: #f8fafc; 
-    border: 2px dashed #cbd5e1; 
-    border-radius: 8px; 
-    padding: 16px; 
-    transition: border-color 0.2s ease; 
-    
-    /* New properties to center content inside the large cards */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
+        .upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 16px; }
+        .upload-card { background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; transition: border-color 0.2s ease; }
         .upload-card:hover { border-color: #2563eb; }
         .upload-card label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
         .upload-card input[type="file"] { width: 100%; font-size: 0.85rem; }
@@ -90,6 +78,11 @@
                 <label for="uploadAttendance">2. Employee Attendance</label>
                 <input type="file" id="uploadAttendance" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'attendance')">
                 <span id="status-attendance" class="status-badge">Default Data</span>
+            </div>
+            <div class="upload-card">
+                <label for="uploadReels">3. Instagram Reels Data</label>
+                <input type="file" id="uploadReels" accept=".xlsx, .xls" onchange="handleFileUpload(event, 'reels')">
+                <span id="status-reels" class="status-badge">Default Data</span>
             </div>
         </div>
     </div>
@@ -357,7 +350,7 @@
             if (dashboardData.reels.length > 0) {
                 let html = "";
                 dashboardData.reels.forEach(r => {
-                    let reelUrl = (r.url && r.url !== "N/A") ? r.url : "https://www.instagram.com/footall_ft/reels/";
+                    let reelUrl = (r.url && r.url !== "N/A") ? r.url : "https://www.instagram.com/footall_ft/";
                     html += `
                         <div class="ig-post">
                             <div class="ig-post-header">
