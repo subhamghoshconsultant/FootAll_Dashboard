@@ -14,7 +14,19 @@
         /* Upload Panel Styles */
         .upload-section { background-color: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 24px; }
         .upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
-        .upload-card { background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; transition: border-color 0.2s ease; }
+        .upload-card { 
+    background-color: #f8fafc; 
+    border: 2px dashed #cbd5e1; 
+    border-radius: 8px; 
+    padding: 16px; 
+    transition: border-color 0.2s ease; 
+    
+    /* New properties to center content inside the large cards */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
         .upload-card:hover { border-color: #2563eb; }
         .upload-card label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
         .upload-card input[type="file"] { width: 100%; font-size: 0.85rem; }
