@@ -9,6 +9,31 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
+
+        @media print {
+    /* Hide everything on the page by default */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Make only the bill preview container and its contents visible */
+    #billPreviewContainer, #billPreviewContainer * {
+        visibility: visible;
+    }
+    
+    /* Position the bill at the top left of the printed page */
+    #billPreviewContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        box-shadow: none !important;
+        border: none !important;
+        background: #ffffff !important;
+    }
+}
         * {
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
