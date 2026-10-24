@@ -432,6 +432,47 @@
     </div>
 
     <script>
+
+        // Set invoice date
+document.getElementById('billInvoiceDate').innerText = "Date: " + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+function updateBillPrice() {
+    const select = document.getElementById('billServiceSelect');
+    const price = select.value.split('|')[1];
+    document.getElementById('billItemPrice').value = price;
+}
+
+function generateDashboardBill() {
+    const name = document.getElementById('billClientName').value || "Client";
+    const service = document.getElementById('billServiceSelect').value.split('|')[0];
+    const price = parseFloat(document.getElementById('billItemPrice').value) || 0;
+    
+    document.getElementById('lblClientName').innerText = name;
+    document.getElementById('lblServiceName').innerText = service;
+    document.getElementById('lblServicePrice').innerText = `₹${price.toFixed(2)}`;
+    
+    const tax = price * 0.05;
+    const total = price + tax;
+    
+    document.getElementById('lblSubtotal').innerText = `₹${price.toFixed(2)}`;
+    document.getElementById('lblTax').innerText = `₹${tax.toFixed(2)}`;
+    document.getElementById('lblTotal').innerText = `₹${total.toFixed(2)}`;
+}
+
+function sendBillWhatsApp() {
+    const phone = document.getElementById('billClientPhone').value;
+    const name = document.getElementById('lblClientName').innerText;
+    const service = document.getElementById('lblServiceName').innerText;
+    const total = document.getElementById('lblTotal').innerText;
+    
+    if (!phone) {
+        alert("Please enter a WhatsApp phone number.");
+        return;
+    }
+    
+    const message = `Hi ${name}, here is your bill summary from FootAll - Foot Therapy:\n\nService: ${service}\nTotal Amount: ${total}\n\nThank you for visiting us!`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+}
         // Central State Store
         let dashboardData = {
             client: [],
