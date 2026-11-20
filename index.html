@@ -520,4 +520,378 @@
       if (typeof val === "number") {
         if (!isFinite(val)) return null;
         const pct = val > 0 && val <= 1 ? val * 100 : val;
-        if
+        if (pct < 0 || pct > 1000) return null;
+        return Math.round(pct * 10) / 10;
+      }
+
+      const str = String(val).trim();
+      // Reject long concatenated strings without decimals/percent signs
+      const match = str.match(/-?\d+(\.\d+)?/);
+      if (!match) return null;
+
+      let num = parseFloat(match[0]);
+      if (!isFinite(num)) return null;
+
+      if (!str.includes("%") && num > 0 && num <= 1) {
+        num = num * 100;
+      }
+
+      if (num < 0 || (num > 1000 && !str.includes("%"))) {
+        return null;
+      }
+
+      return Math.round(num * 10) / 10;
+    }
+
+    function extractDaysNumber(val) {
+      if (val === undefined || val === null || val === "") return null;
+      if (typeof val === "number") {
+        return isFinite(val) && val >= 0 && val <= 366 ? Math.round(val * 10) / 10 : null;
+      }
+      const str = String(val).trim();
+      if (str.includes("%") || extractPhone(str)) return null;
+      const num = parseFloat(str.replace(/[^0-9.-]/g, ""));
+      if (!isFinite(num) || num < 0 || num > 366) return null;
+      return Math.round(num * 10) / 10;
+    }
+
+    function looksLikePersonOrEntityName(val) {
+      if (val === undefined || val === null) return false;
+      const str = String(val).trim();
+      if (!str || str.length < 2) return false;
+      if (/^total\b/i.test(str) || str.toLowerCase().startsWith("click any")) return false;
+      if (str.includes("%") || /^https?:\/\//i.test(str)) return false;
+      if (extractPhone(str)) return false;
+      // Must contain letters and not be purely numeric/currency
+      if (!/[a-zA-Z]{2,}/.test(str)) return false;
+      return true;
+    }
+
+    // Dynamically maps every column across the dataset using header cues + content profiling
+    function buildColumnProfile(rows, headerRow) {
+      const maxCols = rows.reduce((m, r) => Math.max(m, r.length), headerRow ? headerRow.length : 0);
+      const profiles = [];
+
+      for (let c = 0; c < maxCols; c++) {
+        const headerText = headerRow ? String(headerRow[c] ?? "").trim() : "";
+        let nameScore = 0;
+        let usageScore = 0;
+        let phoneScore = 0;
+        let daysScore = 0;
+
+        if (headerText) {
+          if (FIELD_PATTERNS.name.test(headerText)) nameScore += 25;
+          if (FIELD_PATTERNS.usage.test(headerText)) usageScore += 25;
+          if (FIELD_PATTERNS.phone.test(headerText)) phoneScore += 25;
+          if (FIELD_PATTERNS.present.test(headerText)) daysScore += 25;
+          if (FIELD_PATTERNS.ignoreHeader.test(headerText)) {
+            nameScore -= 15;
+            usageScore -= 10;
+            daysScore -= 10;
+          }
+        }
+
+        for (const row of rows) {
+          const cell = row[c];
+          if (cell === undefined || cell === null || String(cell).trim() === "") continue;
+          const str = String(cell).trim();
+
+          if (looksLikePersonOrEntityName(cell)) {
+            nameScore += 2;
+          }
+          if (extractPhone(cell)) {
+            phoneScore += 4;
+          }
+          if (str.includes("%")) {
+            usageScore += 4;
+          } else if (extractPercentage(cell) !== null) {
+            usageScore += 1.5;
+          }
+          if (extractDaysNumber(cell) !== null) {
+            daysScore += 2;
+          }
+        }
+
+        profiles.push({
+          colIndex: c,
+          headerText,
+          nameScore,
+          usageScore,
+          phoneScore,
+          daysScore
+        });
+      }
+
+      return profiles;
+    }
+
+    function pickBestColumnIndex(profiles, scoreKey, excludedCols = new Set()) {
+      let bestCol = -1;
+      let bestScore = 0;
+      for (const p of profiles) {
+        if (excludedCols.has(p.colIndex)) continue;
+        if (p[scoreKey] > bestScore) {
+          bestScore = p[scoreKey];
+          bestCol = p.colIndex;
+        }
+      }
+      return bestCol;
+    }
+
+    function normalizeRowsFullyDynamic(rawRows, category) {
+      const nonEmpty = rawRows.filter(r => r.some(c => String(c ?? "").trim() !== ""));
+      if (nonEmpty.length === 0) return [];
+
+      // Locate best header row among top rows if present
+      let bestHeaderIdx = -1;
+      let bestHeaderScore = 0;
+      const scanLimit = Math.min(nonEmpty.length, 6);
+      for (let i = 0; i < scanLimit; i++) {
+        const s = scoreHeaderRow(nonEmpty[i]);
+        if (s > bestHeaderScore) {
+          bestHeaderScore = s;
+          bestHeaderIdx = i;
+        }
+      }
+
+      const headerRow = bestHeaderScore > 0 ? nonEmpty[bestHeaderIdx] : null;
+      const candidateRows = (bestHeaderIdx >= 0 ? nonEmpty.slice(bestHeaderIdx + 1) : nonEmpty)
+        .filter(r => !isSummaryOrBannerRow(r));
+
+      if (candidateRows.length === 0) return [];
+
+      const profiles = buildColumnProfile(candidateRows, headerRow);
+
+      if (category === "client") {
+        const used = new Set();
+        const nameCol = pickBestColumnIndex(profiles, "nameScore", used);
+        if (nameCol !== -1) used.add(nameCol);
+
+        const phoneCol = pickBestColumnIndex(profiles, "phoneScore", used);
+        if (phoneCol !== -1) used.add(phoneCol);
+
+        const usageCol = pickBestColumnIndex(profiles, "usageScore", used);
+        if (usageCol !== -1) used.add(usageCol);
+
+        return candidateRows.map((row) => {
+          // Column-first resolution with row-level fallback if a row differs
+          let resolvedName = nameCol !== -1 && looksLikePersonOrEntityName(row[nameCol])
+            ? String(row[nameCol]).trim()
+            : "";
+
+          if (!resolvedName) {
+            const fallbackName = row.find(c => looksLikePersonOrEntityName(c));
+            resolvedName = fallbackName ? String(fallbackName).trim() : "N/A";
+          }
+
+          let resolvedPhone = phoneCol !== -1 ? extractPhone(row[phoneCol]) : "";
+          if (!resolvedPhone) {
+            for (const cell of row) {
+              const p = extractPhone(cell);
+              if (p) {
+                resolvedPhone = p;
+                break;
+              }
+            }
+          }
+
+          let resolvedUsage = usageCol !== -1 ? extractPercentage(row[usageCol]) : null;
+          if (resolvedUsage === null) {
+            for (let idx = 0; idx < row.length; idx++) {
+              if (idx === nameCol || idx === phoneCol) continue;
+              const u = extractPercentage(row[idx]);
+              if (u !== null) {
+                resolvedUsage = u;
+                break;
+              }
+            }
+          }
+
+          return {
+            name: resolvedName,
+            usage: resolvedUsage ?? 0,
+            phone: resolvedPhone || "N/A"
+          };
+        });
+      }
+
+      if (category === "attendance") {
+        const used = new Set();
+        const nameCol = pickBestColumnIndex(profiles, "nameScore", used);
+        if (nameCol !== -1) used.add(nameCol);
+
+        const daysCol = pickBestColumnIndex(profiles, "daysScore", used);
+        if (daysCol !== -1) used.add(daysCol);
+
+        return candidateRows.map((row) => {
+          let resolvedName = nameCol !== -1 && looksLikePersonOrEntityName(row[nameCol])
+            ? String(row[nameCol]).trim()
+            : "";
+
+          if (!resolvedName) {
+            const fallbackName = row.find(c => looksLikePersonOrEntityName(c));
+            resolvedName = fallbackName ? String(fallbackName).trim() : "N/A";
+          }
+
+          let resolvedDays = daysCol !== -1 ? extractDaysNumber(row[daysCol]) : null;
+          if (resolvedDays === null) {
+            for (let idx = 0; idx < row.length; idx++) {
+              if (idx === nameCol) continue;
+              const d = extractDaysNumber(row[idx]);
+              if (d !== null) {
+                resolvedDays = d;
+                break;
+              }
+            }
+          }
+
+          return {
+            name: resolvedName,
+            present: resolvedDays ?? 0
+          };
+        });
+      }
+
+      return candidateRows;
+    }
+
+    // 1. Dynamic File Upload Handler
+    function handleFileUpload(event, category) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+        const normalized = normalizeRowsFullyDynamic(rawRows, category);
+
+        if (!normalized || normalized.length === 0) {
+          alert("No usable data rows found in the uploaded Excel sheet.");
+          return;
+        }
+
+        dashboardData[category] = normalized;
+
+        let badge = document.getElementById(`status-${category}`);
+        badge.textContent = "Data Loaded";
+        badge.classList.add("active");
+
+        updateDashboardUI();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 2. Mock Data Generator
+    function generateMockData() {
+      dashboardData.client = [
+        { name: "Acme Corp", usage: 95, phone: "1234567890" },
+        { name: "TechFlow Inc", usage: 85, phone: "0987654321" },
+        { name: "Global Med", usage: 92, phone: "1112223333" },
+        { name: "Local Bakery", usage: 56, phone: "4445556666" }
+      ];
+
+      const today = new Date();
+      const currentDay = today.getDate();
+
+      dashboardData.attendance = [
+        { name: "John Doe", present: currentDay > 2 ? currentDay - 1 : currentDay },
+        { name: "Jane Smith", present: currentDay },
+        { name: "Rahul Verma", present: currentDay > 3 ? currentDay - 2 : currentDay },
+        { name: "Priya Sharma", present: currentDay }
+      ];
+
+      ['client', 'attendance'].forEach(cat => {
+        let badge = document.getElementById(`status-${cat}`);
+        badge.textContent = "Mock Data Active";
+        badge.classList.add("active");
+      });
+
+      updateDashboardUI();
+    }
+
+    // 3. Update UI (Metrics & Tables)
+    function updateDashboardUI() {
+      updateMetrics();
+      renderTables();
+    }
+
+    function updateMetrics() {
+      const totalClients = dashboardData.client.length;
+      const highUsageClients = dashboardData.client.filter(c => c.usage > 90).length;
+
+      document.getElementById('metric-clients').innerText = highUsageClients;
+      document.getElementById('metric-clients-sub').innerText = `Out of ${totalClients} total clients`;
+
+      let totalPresent = 0;
+      dashboardData.attendance.forEach(a => {
+        totalPresent += a.present;
+      });
+
+      const today = new Date();
+      const daysInMonthSoFar = today.getDate();
+      const totalPossible = dashboardData.attendance.length * daysInMonthSoFar;
+      const attendancePercent = totalPossible > 0 ? ((totalPresent / totalPossible) * 100).toFixed(1) : 0;
+
+      document.getElementById('metric-attendance').innerText = totalPresent;
+      document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% (Month-to-Date)`;
+    }
+
+    function renderTables() {
+      if (dashboardData.client.length > 0) {
+        let html = `<table><tr><th>Client Name</th><th>Usage %</th><th>Action</th></tr>`;
+        dashboardData.client.forEach(c => {
+          let actionHtml = "N/A";
+          if (c.usage > 90 && c.phone !== "N/A" && c.phone !== "") {
+            let msg = encodeURIComponent(`Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`);
+            actionHtml = `<a href="https://wa.me/${c.phone}?text=${msg}" target="_blank" class="btn-wa">Send WhatsApp</a>`;
+          }
+          html += `<tr><td>${c.name}</td><td>${c.usage}%</td><td>${actionHtml}</td></tr>`;
+        });
+        html += `</table>`;
+        document.getElementById('container-client').innerHTML = html;
+      }
+
+      if (dashboardData.attendance.length > 0) {
+        const today = new Date();
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const currentMonth = monthNames[today.getMonth()];
+        const currentDay = today.getDate();
+        const dateRangeStr = `1st ${currentMonth} - ${currentDay} ${currentMonth}`;
+
+        let html = `<table><tr><th>Employee Name</th><th>Days Present (${dateRangeStr})</th></tr>`;
+        dashboardData.attendance.forEach(a => {
+          html += `<tr><td>${a.name}</td><td>${a.present}</td></tr>`;
+        });
+        html += `</table>`;
+        document.getElementById('container-attendance').innerHTML = html;
+      }
+    }
+
+    // 4. Bulk Auto-Send WhatsApp Logic
+    function autoSendWhatsApp() {
+      const targetClients = dashboardData.client.filter(c => c.usage > 90 && c.phone && c.phone !== "N/A");
+
+      if (targetClients.length === 0) {
+        alert("No clients found with over 90% usage or valid phone numbers.");
+        return;
+      }
+
+      const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them. \n(Note: Ensure your browser pop-up blocker is disabled for this site).`);
+
+      if (confirmSend) {
+        targetClients.forEach(c => {
+          let message = `Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`;
+          let encodedMessage = encodeURIComponent(message);
+          let waUrl = `https://wa.me/${c.phone}?text=${encodedMessage}`;
+          window.open(waUrl, '_blank');
+        });
+      }
+    }
+  </script>
+</body>
+</html>
