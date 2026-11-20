@@ -251,16 +251,16 @@
   <div class="upload-section">
     <h2>Upload Latest Excel Documents</h2>
     <p style="color: #64748b; font-size: 0.9rem;">
-      Upload Excel or CSV files without worrying about exact column header names or banner rows. Columns for Client Name, Usage %, Phone, and Attendance are detected automatically.
+      Upload any Excel or CSV file. Fields are discovered dynamically from header cues and cell patterns—no fixed column order or exact header titles required.
     </p>
     <div class="upload-grid" style="grid-template-columns: repeat(2, 1fr);">
       <div class="upload-card">
-        <label for="uploadClient">1. Client Details (Name, Usage %, Phone)</label>
+        <label for="uploadClient">1. Client Details (Any Column Layout)</label>
         <input type="file" id="uploadClient" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 'client')">
         <span id="status-client" class="status-badge">Default Data</span>
       </div>
       <div class="upload-card">
-        <label for="uploadAttendance">2. Employee Attendance (Name, Days Present)</label>
+        <label for="uploadAttendance">2. Employee Attendance (Any Column Layout)</label>
         <input type="file" id="uploadAttendance" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event, 'attendance')">
         <span id="status-attendance" class="status-badge">Default Data</span>
       </div>
@@ -463,305 +463,61 @@
       attendance: []
     };
 
-    function isNonDataRow(row) {
-      const joined = row.map(c => String(c ?? "").trim()).join(" ").trim();
-      if (!joined) return true;
+    const FIELD_PATTERNS = {
+      name: /\b(name|client|customer|member|employee|staff|person|user|full\s*name)\b/i,
+      usage: /\b(usage|utili[sz]ation|consume|consumed|progress|completion|percent|pct|%)\b/i,
+      phone: /\b(phone|mobile|cell|contact|whatsapp|wa|tel|telephone)\b/i,
+      present: /\b(present|days|attendance|attended|worked|day\s*count)\b/i,
+      ignoreHeader: /\b(no\.?|sr\.?|serial|id|code|link|sheet|note|instruction)\b/i
+    };
 
-      const firstCell = String(row[0] ?? "").trim().toLowerCase();
-      const secondCell = String(row[1] ?? "").trim().toLowerCase();
+    function isSummaryOrBannerRow(row) {
+      const cells = row.map(c => String(c ?? "").trim()).filter(Boolean);
+      if (cells.length === 0) return true;
+      const joined = cells.join(" ").toLowerCase();
 
       if (
-        firstCell === "total" ||
-        secondCell === "total" ||
-        firstCell.startsWith("click any client") ||
-        joined.toLowerCase().startsWith("click any client")
+        cells.some(c => /^total\b/i.test(c)) ||
+        joined.includes("click any client") ||
+        joined.includes("summary metrics update")
       ) {
         return true;
       }
-
-      // Skip table header rows
-      const headerTokens = ["client no", "client name", "usage %", "employee name", "days present", "phone", "mobile"];
-      const matchesHeader = headerTokens.some(token => firstCell === token || secondCell === token);
-      if (matchesHeader) return true;
-
       return false;
     }
 
-    // 1. Header-Independent & Column-Order-Independent File Upload Handler
-    function handleFileUpload(event, category) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-
-        // header: 1 returns raw 2D arrays [ [colA, colB, colC, ...], ... ]
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-        // Filter out blank rows, banner notes, totals, and header rows
-        const dataRows = rawRows.filter(row => !isNonDataRow(row));
-
-        if (!dataRows || dataRows.length === 0) {
-          alert("No usable data rows found in the uploaded Excel sheet.");
-          return;
+    function scoreHeaderRow(row) {
+      let matches = 0;
+      for (const cell of row) {
+        const text = String(cell ?? "").trim();
+        if (!text) continue;
+        if (
+          FIELD_PATTERNS.name.test(text) ||
+          FIELD_PATTERNS.usage.test(text) ||
+          FIELD_PATTERNS.phone.test(text) ||
+          FIELD_PATTERNS.present.test(text)
+        ) {
+          matches++;
         }
-
-        dashboardData[category] = normalizeRowsDynamically(dataRows, category);
-
-        let badge = document.getElementById(`status-${category}`);
-        badge.textContent = "Data Loaded";
-        badge.classList.add("active");
-
-        updateDashboardUI();
-      };
-      reader.readAsArrayBuffer(file);
+      }
+      return matches;
     }
 
-    function parseUsagePercent(val) {
-      if (val === undefined || val === null || val === "") return 0;
+    function extractPhone(val) {
+      if (val === undefined || val === null || val === "") return "";
+      const str = String(val).trim();
+      if (str.includes("%")) return "";
+      const digits = str.replace(/[^0-9]/g, "");
+      if (digits.length >= 7 && digits.length <= 15) {
+        return digits;
+      }
+      return "";
+    }
+
+    function extractPercentage(val) {
+      if (val === undefined || val === null || val === "") return null;
 
       if (typeof val === "number") {
+        if (!isFinite(val)) return null;
         const pct = val > 0 && val <= 1 ? val * 100 : val;
-        return pct > 1000 ? 0 : Math.round(pct * 10) / 10;
-      }
-
-      const str = String(val).trim();
-      const match = str.match(/-?\d+(\.\d+)?/);
-      if (!match) return 0;
-
-      let num = parseFloat(match[0]);
-      if (isNaN(num)) return 0;
-
-      if (!str.includes("%") && num > 0 && num <= 1) {
-        num = num * 100;
-      }
-
-      if (num > 1000 && !str.includes("%")) {
-        return 0;
-      }
-
-      return Math.round(num * 10) / 10;
-    }
-
-    function parseSimpleNumber(val) {
-      if (val === undefined || val === null || val === "") return 0;
-      const num = parseFloat(String(val).replace(/[^0-9.-]/g, ""));
-      return isNaN(num) ? 0 : Math.round(num * 10) / 10;
-    }
-
-    function detectClientColumns(rows) {
-      const maxCols = rows.reduce((max, r) => Math.max(max, r.length), 0);
-      let nameCol = -1;
-      let usageCol = -1;
-      let phoneCol = -1;
-
-      for (let col = 0; col < maxCols; col++) {
-        let textNameCount = 0;
-        let percentCount = 0;
-        let phoneCount = 0;
-        let smallNumberCount = 0;
-
-        for (const row of rows) {
-          const cell = row[col];
-          if (cell === undefined || cell === null || String(cell).trim() === "") continue;
-          const str = String(cell).trim();
-          const digitsOnly = str.replace(/[^0-9]/g, "");
-
-          if (str.includes("%")) {
-            percentCount++;
-          }
-
-          if (digitsOnly.length >= 10 && digitsOnly.length <= 13 && !str.includes("%")) {
-            phoneCount++;
-          }
-
-          const numVal = parseFloat(str.replace(/[^0-9.-]/g, ""));
-          if (!isNaN(numVal) && numVal >= 0 && numVal <= 500 && digitsOnly.length <= 4) {
-            smallNumberCount++;
-          }
-
-          // Text check: contains letters (e.g. client name), not just digits or serial index
-          if (/[a-zA-Z]{2,}/.test(str)) {
-            textNameCount++;
-          }
-        }
-
-        if (phoneCol === -1 && phoneCount >= Math.max(1, Math.floor(rows.length * 0.2))) {
-          phoneCol = col;
-        }
-
-        if (usageCol === -1 && (percentCount > 0 || smallNumberCount >= Math.max(1, Math.floor(rows.length * 0.4)))) {
-          usageCol = col;
-        }
-
-        if (nameCol === -1 && textNameCount >= Math.max(1, Math.floor(rows.length * 0.3))) {
-          nameCol = col;
-        }
-      }
-
-      if (nameCol === -1) nameCol = maxCols > 1 ? 1 : 0;
-      if (usageCol === -1) usageCol = maxCols > 2 ? 2 : 1;
-
-      return { nameCol, usageCol, phoneCol };
-    }
-
-    // 2. Dynamic Row Normalizer (Independent of Excel Headings)
-    function normalizeRowsDynamically(rows, category) {
-      if (category === "client") {
-        const { nameCol, usageCol, phoneCol } = detectClientColumns(rows);
-
-        return rows.map((row) => {
-          const rawName = row[nameCol];
-          const rawUsage = row[usageCol];
-          const rawPhone = phoneCol !== -1 ? row[phoneCol] : "";
-
-          const cleanName = rawName !== undefined && String(rawName).trim() !== ""
-            ? String(rawName).trim()
-            : (String(row[0] ?? "").trim() ? `Client #${String(row[0]).trim()}` : "N/A");
-
-          return {
-            name: cleanName,
-            usage: parseUsagePercent(rawUsage),
-            phone: rawPhone !== undefined ? String(rawPhone).replace(/[^0-9]/g, "") || "N/A" : "N/A"
-          };
-        });
-      }
-
-      if (category === "attendance") {
-        return rows.map((row) => {
-          let nameVal = "";
-          let daysVal = 0;
-
-          for (let i = 0; i < row.length; i++) {
-            const cellStr = String(row[i] ?? "").trim();
-            if (!cellStr) continue;
-            if (!nameVal && /[a-zA-Z]{2,}/.test(cellStr)) {
-              nameVal = cellStr;
-            } else if (daysVal === 0 && !isNaN(parseFloat(cellStr.replace(/[^0-9.-]/g, "")))) {
-              daysVal = parseSimpleNumber(cellStr);
-            }
-          }
-
-          return {
-            name: nameVal || (row[0] !== undefined && String(row[0]).trim() !== "" ? String(row[0]).trim() : "N/A"),
-            present: daysVal
-          };
-        });
-      }
-
-      return rows;
-    }
-
-    // 3. Mock Data Generator
-    function generateMockData() {
-      dashboardData.client = [
-        { name: "Acme Corp", usage: 95, phone: "1234567890" },
-        { name: "TechFlow Inc", usage: 85, phone: "0987654321" },
-        { name: "Global Med", usage: 92, phone: "1112223333" },
-        { name: "Local Bakery", usage: 56, phone: "4445556666" }
-      ];
-
-      const today = new Date();
-      const currentDay = today.getDate();
-
-      dashboardData.attendance = [
-        { name: "John Doe", present: currentDay > 2 ? currentDay - 1 : currentDay },
-        { name: "Jane Smith", present: currentDay },
-        { name: "Rahul Verma", present: currentDay > 3 ? currentDay - 2 : currentDay },
-        { name: "Priya Sharma", present: currentDay }
-      ];
-
-      ['client', 'attendance'].forEach(cat => {
-        let badge = document.getElementById(`status-${cat}`);
-        badge.textContent = "Mock Data Active";
-        badge.classList.add("active");
-      });
-
-      updateDashboardUI();
-    }
-
-    // 4. Update UI (Metrics & Tables)
-    function updateDashboardUI() {
-      updateMetrics();
-      renderTables();
-    }
-
-    function updateMetrics() {
-      const totalClients = dashboardData.client.length;
-      const highUsageClients = dashboardData.client.filter(c => c.usage > 90).length;
-
-      document.getElementById('metric-clients').innerText = highUsageClients;
-      document.getElementById('metric-clients-sub').innerText = `Out of ${totalClients} total clients`;
-
-      let totalPresent = 0;
-      dashboardData.attendance.forEach(a => {
-        totalPresent += a.present;
-      });
-
-      const today = new Date();
-      const daysInMonthSoFar = today.getDate();
-      const totalPossible = dashboardData.attendance.length * daysInMonthSoFar;
-      const attendancePercent = totalPossible > 0 ? ((totalPresent / totalPossible) * 100).toFixed(1) : 0;
-
-      document.getElementById('metric-attendance').innerText = totalPresent;
-      document.getElementById('metric-attendance-sub').innerText = `${attendancePercent}% (Month-to-Date)`;
-    }
-
-    function renderTables() {
-      if (dashboardData.client.length > 0) {
-        let html = `<table><tr><th>Client Name</th><th>Usage %</th><th>Action</th></tr>`;
-        dashboardData.client.forEach(c => {
-          let actionHtml = "N/A";
-          if (c.usage > 90 && c.phone !== "N/A" && c.phone !== "") {
-            let msg = encodeURIComponent(`Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`);
-            actionHtml = `<a href="https://wa.me/${c.phone}?text=${msg}" target="_blank" class="btn-wa">Send WhatsApp</a>`;
-          }
-          html += `<tr><td>${c.name}</td><td>${c.usage}%</td><td>${actionHtml}</td></tr>`;
-        });
-        html += `</table>`;
-        document.getElementById('container-client').innerHTML = html;
-      }
-
-      if (dashboardData.attendance.length > 0) {
-        const today = new Date();
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const currentMonth = monthNames[today.getMonth()];
-        const currentDay = today.getDate();
-        const dateRangeStr = `1st ${currentMonth} - ${currentDay} ${currentMonth}`;
-
-        let html = `<table><tr><th>Employee Name</th><th>Days Present (${dateRangeStr})</th></tr>`;
-        dashboardData.attendance.forEach(a => {
-          html += `<tr><td>${a.name}</td><td>${a.present}</td></tr>`;
-        });
-        html += `</table>`;
-        document.getElementById('container-attendance').innerHTML = html;
-      }
-    }
-
-    // 5. Bulk Auto-Send WhatsApp Logic
-    function autoSendWhatsApp() {
-      const targetClients = dashboardData.client.filter(c => c.usage > 90 && c.phone && c.phone !== "N/A");
-
-      if (targetClients.length === 0) {
-        alert("No clients found with over 90% usage or valid phone numbers.");
-        return;
-      }
-
-      const confirmSend = confirm(`Found ${targetClients.length} clients with >90% usage. \n\nClick OK to open WhatsApp for all of them. \n(Note: Ensure your browser pop-up blocker is disabled for this site).`);
-
-      if (confirmSend) {
-        targetClients.forEach(c => {
-          let message = `Hi ${c.name}, thank you for utilizing over 90% of your package! Let us know if you need to upgrade.`;
-          let encodedMessage = encodeURIComponent(message);
-          let waUrl = `https://wa.me/${c.phone}?text=${encodedMessage}`;
-          window.open(waUrl, '_blank');
-        });
-      }
-    }
-  </script>
-</body>
-</html>
+        if
